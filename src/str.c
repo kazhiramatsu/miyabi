@@ -23,7 +23,7 @@ perl_str_new(perl_state *state, const char *s, int len)
 perl_scalar
 perl_str_grow(perl_state *state, perl_scalar str, int newlen)
 {
-	struct perl_str *s = perl_to_str(str);
+  struct perl_str *s = perl_to_str(str);
 
   s->str = realloc(s->str, newlen+1);
   s->fill = newlen;
@@ -34,7 +34,7 @@ perl_str_grow(perl_state *state, perl_scalar str, int newlen)
 perl_scalar
 perl_str_gets(perl_state *state, perl_scalar str, FILE *f)
 {
-	struct perl_str *s = perl_to_str(str);
+  struct perl_str *s = perl_to_str(str);
   int c;
 
   for (;;) {
@@ -54,7 +54,7 @@ perl_str_gets(perl_state *state, perl_scalar str, FILE *f)
 perl_scalar
 perl_str_clear(perl_state *state, perl_scalar str)
 {
-	struct perl_str *s = perl_to_str(str);
+  struct perl_str *s = perl_to_str(str);
 
   memset(s->str, '\0', s->fill);
   s->fill = 0;
@@ -64,7 +64,7 @@ perl_str_clear(perl_state *state, perl_scalar str)
 perl_scalar
 perl_str_putc(perl_state *state, perl_scalar str, char c)
 {
-	struct perl_str *s = perl_to_str(str);
+  struct perl_str *s = perl_to_str(str);
   int newlen = s->fill + 1;
 
   s->str = realloc(s->str, newlen+1);
@@ -78,16 +78,16 @@ perl_str_putc(perl_state *state, perl_scalar str, char c)
 perl_scalar 
 perl_str_cat(perl_state *state, perl_scalar dstr, perl_scalar sstr)
 {
-	struct perl_str *ss = perl_to_str(sstr);
+  struct perl_str *ss = perl_to_str(sstr);
 
   perl_str_cat_cstr(state, dstr, ss->str, ss->fill);
-	return dstr;
+  return dstr;
 }
 
 perl_scalar
 perl_str_cat_cstr(perl_state *state, perl_scalar str, char *sstr, int len)
 {
-	struct perl_str *s = perl_to_str(str);
+  struct perl_str *s = perl_to_str(str);
   int newlen = s->fill + len;
 
   s->str = realloc(s->str, newlen+1);
@@ -101,8 +101,8 @@ perl_str_cat_cstr(perl_state *state, perl_scalar str, char *sstr, int len)
 _Bool
 perl_str_eq(perl_state *state, perl_scalar str1, perl_scalar str2)
 {
-	struct perl_str *s1 = perl_to_str(str1);  
-	struct perl_str *s2 = perl_to_str(str2);  
+  struct perl_str *s1 = perl_to_str(str1);  
+  struct perl_str *s2 = perl_to_str(str2);  
 
   if (s1->fill != s2->fill) {
     return false;
@@ -118,7 +118,7 @@ perl_str_eq(perl_state *state, perl_scalar str1, perl_scalar str2)
 perl_scalar
 perl_str_copy(perl_state *state, perl_scalar str)
 {
-	struct perl_str *s = perl_to_str(str);
+  struct perl_str *s = perl_to_str(str);
 
   return perl_str_new(state, s->str, s->fill);
 }

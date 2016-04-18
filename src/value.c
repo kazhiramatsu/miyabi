@@ -10,9 +10,9 @@ perl_num_init(double val)
     uint64_t v;
   } u;
 
-	if (isnan(val)) {
-		return PERL_TAG_NAN;
-	}
+  if (isnan(val)) {
+    return PERL_TAG_NAN;
+  }
   u.d = val;
   return u.v;
 }
@@ -73,7 +73,7 @@ perl_to_num(perl_scalar val)
     uint64_t v;
   } u;
 
-	u.v = val;
+  u.v = val;
   return u.d;
 }
 

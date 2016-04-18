@@ -1317,11 +1317,11 @@ perl_new_package(perl_parser *p, node *name)
   perl_init_node(p, &n->base, NODE_PACKAGE, 0);
   n->name = name;
   stash = perl_hash_fetch(p->state, p->defstash,
-                      		perl_str_new(p->state, p->tokenbuf, p->tokenlen),
-                      		perl_hash_new(p->state),
-                      		true);
+                          perl_str_new(p->state, p->tokenbuf, p->tokenlen),
+                          perl_hash_new(p->state),
+                          true);
   perl_add_our_name(p, p->curstash, v->sym);
-	p->curstash = *stash;
+  p->curstash = *stash;
   return (node *)n;
 }
 
@@ -1724,11 +1724,11 @@ perl_node_dump(node *n, int indent)
         printf("sub:\n");
         perl_sub_node *sub = to_sub_node(n);
         perl_node_dump(sub->subname, indent+1);
-				for (int j=0; j<indent+1; j++) {
-					printf("  ");
-				}
+        for (int j=0; j<indent+1; j++) {
+          printf("  ");
+        }
         printf("stash ");
-				perl_scalar_dump(sub->stashname);
+        perl_scalar_dump(sub->stashname);
         printf("\n");
         perl_node_dump(sub->subbody, indent+1);
       }
@@ -1970,12 +1970,12 @@ perl_parse_file(perl_state *state, char *file)
 
   yyparse(p);
 
-	if (p->state->options & PERL_OPTION_VERBOSE) {
-		perl_token_dump(p);
-		perl_node_dump(p->program, 1);
-	} else if (p->state->options & PERL_OPTION_AST) {
-		perl_node_dump(p->program, 1);
-	}
+  if (p->state->options & PERL_OPTION_VERBOSE) {
+    perl_token_dump(p);
+    perl_node_dump(p->program, 1);
+  } else if (p->state->options & PERL_OPTION_AST) {
+    perl_node_dump(p->program, 1);
+  }
   state->defstash = p->defstash;
   return p;
 }
@@ -2002,15 +2002,15 @@ perl_parser_new(perl_state *state)
   p->tokenlen = 0;
   p->defstash = perl_hash_new(p->state);
   p->curstash = p->defstash;
-	p->curstashname = perl_str_new(p->state, "main::", 6); 
+  p->curstashname = perl_str_new(p->state, "main::", 6); 
   p->tokens = NULL;
   p->nexttoke = malloc(sizeof(next_token));
-	p->nexttoke->nexttoken = 0;
-	memset(p->nexttoke->nexttype, 0, 10);
-	memset(p->nexttoke->nexttokval, 0, 10);
+  p->nexttoke->nexttoken = 0;
+  memset(p->nexttoke->nexttype, 0, 10);
+  memset(p->nexttoke->nexttokval, 0, 10);
   p->line_idx = -1;
   p->curblock = NULL;
-	p->subname = perl_str_new(p->state, "" ,0);
+  p->subname = perl_str_new(p->state, "" ,0);
   return p;
 }
 
@@ -2504,7 +2504,7 @@ force_next(perl_parser *p, int token)
 int
 perl_sublex_start(perl_parser *p, int type)
 {
-	if (type == OP_CONST || type == OP_NULL) {
+  if (type == OP_CONST || type == OP_NULL) {
     yylval.opval = perl_new_const(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
     return THING;
   } else if (type == OP_STRINGIFY) {
@@ -2585,7 +2585,7 @@ perl_yylex(perl_parser *p)
       s = scan_str(p, s, '"', &val);
       if (val == OP_CONST) {
         p->lex_starts++;
-      	yylval.opval = perl_new_const(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
+        yylval.opval = perl_new_const(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
         return token(THING);
       } else if (val == OP_STRINGIFY) {
         p->lex_starts++;
@@ -2771,7 +2771,7 @@ retry:
       int val = OP_CONST;
       s++;
       s = scan_str(p, s, '"', &val);
-			int tok = perl_sublex_start(p, val);
+      int tok = perl_sublex_start(p, val);
       return term(tok);
     }
     break;
@@ -2847,29 +2847,29 @@ force_version(perl_parser *p, char *s, int guessing)
 static char *
 tokenize_use(perl_parser *p, int is_use, char *s)
 {
-//	if (p->expect != XSTATE)
-		//yyerror(p, "\"%s\" not allowed in expression", is_use ? "use" : "no");
+//  if (p->expect != XSTATE)
+    //yyerror(p, "\"%s\" not allowed in expression", is_use ? "use" : "no");
 
-	p->expect = XTERM;
-	s = skipspace(p, s);
-	if (isDIGIT(*s) || (*s == 'v' && isDIGIT(s[1]))) {
-		s = force_version(p, s, true);
-		if (*s == ';' || *s == '}'
-				|| (s = skipspace(p, s), (*s == ';' || *s == '}'))) {
-			NEXTVAL_NEXTTOKE.opval = NULL;
-			force_next(p, WORD);
-		}
-		else if (*s == 'v') {
-			s = force_word(p, s,WORD,false,true);
-			s = force_version(p, s, false);
-		}
-	}
-	else {
-		s = force_word(p, s,WORD,false,true);
-		s = force_version(p, s, false);
-	}
-	yylval.ival = is_use;
-	return s;
+  p->expect = XTERM;
+  s = skipspace(p, s);
+  if (isDIGIT(*s) || (*s == 'v' && isDIGIT(s[1]))) {
+    s = force_version(p, s, true);
+    if (*s == ';' || *s == '}'
+        || (s = skipspace(p, s), (*s == ';' || *s == '}'))) {
+      NEXTVAL_NEXTTOKE.opval = NULL;
+      force_next(p, WORD);
+    }
+    else if (*s == 'v') {
+      s = force_word(p, s,WORD,false,true);
+      s = force_version(p, s, false);
+    }
+  }
+  else {
+    s = force_word(p, s,WORD,false,true);
+    s = force_version(p, s, false);
+  }
+  yylval.ival = is_use;
+  return s;
 }
 
 
@@ -2892,7 +2892,7 @@ scan_word(perl_parser *p, char *s, char *tokenbuf, size_t destlen, _Bool allow_p
    
   for (;;) {
     if (d >= e)
-	    perl_croak(p->state, ident_too_long);
+      perl_croak(p->state, ident_too_long);
     if (isALNUM(*s)) {
       *d++ = *s++;
     } else if (*s == '\'' && allow_package && isIDFIRST(s[1])) {
@@ -2917,18 +2917,18 @@ scan_word(perl_parser *p, char *s, char *tokenbuf, size_t destlen, _Bool allow_p
 static char *
 force_strict_version(perl_parser *p, char *s)
 {
-	node *version = NULL;
-	const char *errstr = NULL;
+  node *version = NULL;
+  const char *errstr = NULL;
 
-	while (isSPACE(*s)) /* leading whitespace */
-		s++;
+  while (isSPACE(*s)) /* leading whitespace */
+    s++;
 
-	/* NOTE: The parser sees the package name and the VERSION swapped */
-	//NEXTVAL_NEXTTOKE.opval = version;
-	p->nexttoke->nexttokval[p->nexttoke->nexttoken].opval = version;
-	force_next(p, WORD);
+  /* NOTE: The parser sees the package name and the VERSION swapped */
+  //NEXTVAL_NEXTTOKE.opval = version;
+  p->nexttoke->nexttokval[p->nexttoke->nexttoken].opval = version;
+  force_next(p, WORD);
 
-	return s;
+  return s;
 }
 
 int
@@ -2939,7 +2939,7 @@ parse_word(perl_parser *p, char *s)
   size_t len;
 
   s = scan_word(p, s, p->tokenbuf, sizeof(p->tokenbuf), false, &len);
-	p->tokenlen += len;
+  p->tokenlen += len;
   if (*s == ':' && s[1] == ':' && strNE(p->tokenbuf, "CORE"))
     goto just_a_word;
 
@@ -2984,10 +2984,10 @@ fat_arrow:
   }
 
 reserved_word:
-	switch (tmp) {
+  switch (tmp) {
 
-	default:			/* not a keyword */
-	  just_a_word: {
+  default:      /* not a keyword */
+    just_a_word: {
 
       int pkgname = 0;
       if (*s == '\'' || (*s == ':' && s[1] == ':')) {
@@ -2996,7 +2996,7 @@ reserved_word:
         if (!morelen)
           perl_croak(p->state, "Bad name after %s%s", p->tokenbuf, *s == '\'' ? "'" : "::");
         len += morelen;
-				p->tokenlen += morelen;
+        p->tokenlen += morelen;
         pkgname = 1;
       }
 
@@ -3007,24 +3007,24 @@ reserved_word:
           yylval.opval = perl_new_const(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
           return token(METHOD);
         } else {
-					NEXTVAL_NEXTTOKE.opval = perl_new_sym(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
+          NEXTVAL_NEXTTOKE.opval = perl_new_sym(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
           force_next(p, WORD);
           return token('&');
         }
       } else {
-				s = skipspace(p, s);
-				if (find_our_name(p, p->tokenbuf, p->tokenlen)) {
-					if (*s == '-' && s[1] == '>') {
-						yylval.opval = perl_new_sym(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
-						return token(WORD);
-					}
-					p->nexttoke->nexttokval[p->nexttoke->nexttoken].opval
-						= perl_new_sym(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
-					force_next(p, WORD);
-					return token('&');
-				} else {
-					yylval.opval = perl_new_sym(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
-					return token(WORD);
+        s = skipspace(p, s);
+        if (find_our_name(p, p->tokenbuf, p->tokenlen)) {
+          if (*s == '-' && s[1] == '>') {
+            yylval.opval = perl_new_sym(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
+            return token(WORD);
+          }
+          p->nexttoke->nexttokval[p->nexttoke->nexttoken].opval
+            = perl_new_sym(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
+          force_next(p, WORD);
+          return token('&');
+        } else {
+          yylval.opval = perl_new_sym(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
+          return token(WORD);
         }
       }
     }
@@ -3046,8 +3046,8 @@ reserved_word:
     return token(ELSE);
   case KEY_package:
     s = force_word(p, s, WORD, false, true);
-		s = skipspace(p, s);
-		s = force_strict_version(p, s);
+    s = skipspace(p, s);
+    s = force_strict_version(p, s);
     yylval.ival = PACKAGE;
     return token(PACKAGE);
   case KEY_our:
@@ -3056,29 +3056,29 @@ reserved_word:
     yylval.ival = MY;
     return term(MY);
   case KEY_sub:
-	  really_sub:
-	    s = skipspace(p, s);
+    really_sub:
+      s = skipspace(p, s);
 
-			if (isIDFIRST(*s) || *s == '\'' || *s == ':') {
-				char tmpbuf[128];
-				p->expect = XBLOCK;
-				size_t len = 0;
-				char *d;
-				d = scan_word(p, s, p->tokenbuf, sizeof(p->tokenbuf), true, &len);
-				if (strchr(tmpbuf, ':'))
-					perl_str_cat_cstr(p->state, p->subname, tmpbuf, len);
-				else {
-					p->subname = perl_str_copy(p->state, p->curstashname);
-					perl_str_cat_cstr(p->state, p->subname,"::",2);
-					perl_str_cat_cstr(p->state, p->subname,tmpbuf,len);
-				}
-				s = force_word(p, s, WORD, false, true);
-				s = skipspace(p, s);
-			}
-			else {
-				p->expect = XTERMBLOCK;
-			}
-			return preblock(SUB);
+      if (isIDFIRST(*s) || *s == '\'' || *s == ':') {
+        char tmpbuf[128];
+        p->expect = XBLOCK;
+        size_t len = 0;
+        char *d;
+        d = scan_word(p, s, p->tokenbuf, sizeof(p->tokenbuf), true, &len);
+        if (strchr(tmpbuf, ':'))
+          perl_str_cat_cstr(p->state, p->subname, tmpbuf, len);
+        else {
+          p->subname = perl_str_copy(p->state, p->curstashname);
+          perl_str_cat_cstr(p->state, p->subname,"::",2);
+          perl_str_cat_cstr(p->state, p->subname,tmpbuf,len);
+        }
+        s = force_word(p, s, WORD, false, true);
+        s = skipspace(p, s);
+      }
+      else {
+        p->expect = XTERMBLOCK;
+      }
+      return preblock(SUB);
   case KEY_shift:
     yylval.ival = OP_SHIFT;
     s = skipspace(p, s);
@@ -3093,7 +3093,7 @@ reserved_word:
       }
     }
   case KEY_use:
-		s = tokenize_use(p, 1, s);
+    s = tokenize_use(p, 1, s);
     return token(USE);
   case KEY_print:
     yylval.ival = OP_PRINT; 
