@@ -5,7 +5,7 @@
 #include "miyabi/value.h"
 #include "miyabi/str.h"
 
-char *perl_io_gets(perl_state *state, perl_str str, FILE *fp);
+char *perl_io_gets(perl_state *state, perl_scalar str, FILE *fp);
 
 #endif
 

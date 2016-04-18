@@ -118,7 +118,7 @@ perl_scalar_dump(perl_scalar v)
 {
   switch (perl_type(v)) {
     case PERL_TYPE_STR: {
-      perl_str *str;
+      struct perl_str *str;
       str = perl_to_str(v);
       printf("%s", str->str);
       break;
