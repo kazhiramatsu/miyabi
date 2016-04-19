@@ -32,12 +32,15 @@
 
 #define isIDFIRST_lazy_if(c) ((c) < 0xc0 && isIDFIRST(c))
 #define isXDIGIT(c) (isxdigit((int)(unsigned char)(c)))
+#define SPACE_OR_TAB(c) ((c) == ' ' || (c) == '\t')
 
 #define preblock(retval) (perl_token_add(p, retval, &yylval), p->bufptr = s, p->expect = XBLOCK, retval)
 #define term(retval)     (perl_token_add(p, retval, &yylval), p->bufptr = s, p->expect = XTERM, retval)
 #define operator(retval) (perl_token_add(p, retval, &yylval), p->bufptr = s, p->expect = XOPERATOR, retval)
 #define token(retval)    (perl_token_add(p, retval, &yylval), p->bufptr = s, retval)
 #define ident(retval)    (perl_token_add(p, retval, &yylval), reset(p), retval)
+#define eop(f) (yylval.ival=f, perl_token_add(p, retval, &yylval), p->expect=XTERM, p->bufptr=s, ((int)EQOP))
+#define pmop(f)  (yylval.ival=f, perl_token_add(p, retval, &yylval), p->expect=XTERM, p->bufptr=s, ((int)MATCHOP))
 
 static const char ident_too_long[] = "Identifier too long";
 
@@ -2679,14 +2682,29 @@ retry:
     return token(';');
   case '=':
     s++;
-    if (*s == '>') {
-      yylval.ival = ',';
-      s++;
-      return token(',');
-    } else {
-      yylval.ival = '=';
-      return token(ASSIGNOP);
+    {
+      const char tmp = *s++;
+      if (tmp == '=') {
+        return eop(OP_EQ);
+      }
+      if (tmp == '>') {
+        return operator(',');
+      }
+      if (tmp == '~')
+        return pmop(OP_MATCH);
+      if (tmp && isSPACE(*s) && strchr("+-*/%.^&|<",tmp)) {
+        perl_warn(p->state, "Reversed %c= operator",(int)tmp);
+      }
+      s--;
     }
+    if (p->expect == XBLOCK) {
+      const char *t = s;
+      while (SPACE_OR_TAB(*t) || *t == '\r') {
+        t++;
+      }
+    }
+    yylval.ival = 0;
+    return operator(ASSIGNOP);
   case '{':
     {
       if (p->expect == XSTATE || p->expect == XBLOCK) {
