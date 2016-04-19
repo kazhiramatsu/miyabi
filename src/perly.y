@@ -124,6 +124,15 @@ static const keyword builtins[] = {
 %parse-param {perl_parser *p}
 %lex-param {perl_parser *p}
 
+%{
+int yyparse(perl_parser *p);
+int yylex(void *lval, perl_parser *p);
+void yyerror(perl_parser *p, const char *s);
+void yywarn(perl_parser *p, const char *s);
+void yywarning(perl_parser *p, const char *s);
+int perl_yylex(perl_parser *p);
+%}
+
 %start prog
 
 %union {
@@ -1040,14 +1049,8 @@ typedef struct next_token {
   int nexttype[10];
 } next_token;
 
-static int yyparse(perl_parser *p);
-static int yylex(void *lval, perl_parser *p);
-static void yyerror(perl_parser *p, const char *s);
-static void yywarn(perl_parser *p, const char *s);
-static void yywarning(perl_parser *p, const char *s);
-static int perl_yylex(perl_parser *p);
-static token_t *perl_token_new(perl_parser *p, int type, YYSTYPE *lval);
-static token_t *perl_token_add(perl_parser *p, int type, YYSTYPE *lval);
+token_t *perl_token_new(perl_parser *p, int type, YYSTYPE *lval);
+token_t *perl_token_add(perl_parser *p, int type, YYSTYPE *lval);
 
 node *
 perl_new_node(perl_parser *p, enum perl_node_type type, uint32_t flags)
@@ -1328,17 +1331,17 @@ perl_new_package(perl_parser *p, node *name)
   return (node *)n;
 }
 
-static void
+void
 yywarn(perl_parser *p, const char *s)
 {
   fprintf(stderr, "%s\n", s);
 }
 
-static void
+void
 yyerror(perl_parser *p, const char *s)
 {
   //fprintf(stderr, "%s\n", s);
-  perl_warn(p->state, "%s line %d\n", s, p->line);
+  perl_warner(p->state, "%s line %d\n", s, p->line);
 }
 
 node *
@@ -1577,7 +1580,7 @@ perl_add_my_name(perl_parser *p, perl_scalar name)
   }
   for (v = b->variable; v; prev = v, v = v->next) {
     if (perl_str_eq(NULL, name, v->name)) {
-      perl_warn(p->state, "\"%s\" variable %s masks earlier declaration in same scope\n",
+      perl_warner(p->state, "\"%s\" variable %s masks earlier declaration in same scope\n",
                   "my", perl_to_str(v->name)->str);
       return v;
     }
@@ -2017,7 +2020,7 @@ perl_parser_new(perl_state *state)
   return p;
 }
 
-static int
+int
 yylex(void *lval, perl_parser *p)
 {
   int t;
@@ -2385,7 +2388,7 @@ out:
         if (overflowed) {
           if (n > 4294967295.0)
             //      yywarn(p, "%s number > %s non-portable", Base, max);
-            perl_warn(p->state, "%s number > %s non-portable", Base, max);
+            perl_warner(p->state, "%s number > %s non-portable", Base, max);
           sv = perl_num_init(n);
         }
         else {
@@ -2527,7 +2530,7 @@ takes_special_variable(perl_parser *p, char *s)
   return false;
 }
 
-static int
+int
 perl_yylex(perl_parser *p)
 {
   int retval;
@@ -2693,7 +2696,7 @@ retry:
       if (tmp == '~')
         return pmop(OP_MATCH);
       if (tmp && isSPACE(*s) && strchr("+-*/%.^&|<",tmp)) {
-        perl_warn(p->state, "Reversed %c= operator",(int)tmp);
+        perl_warner(p->state, "Reversed %c= operator",(int)tmp);
       }
       s--;
     }
@@ -2826,7 +2829,7 @@ retry:
   case 'z': case 'Z':
     return parse_word(p, s);
   }
-  perl_warn(p->state, "unknown token '%c' line = %d\n", *s, p->line);
+  perl_warner(p->state, "unknown token '%c' line = %d\n", *s, p->line);
   return 0;
 }
 
@@ -3180,7 +3183,7 @@ perl_pending_ident(perl_parser *p)
   if (p->in_my) {
     if (p->in_my == KEY_our) {  /* "our" is merely analogous to "my" */
       if (has_colon) {
-        perl_warn(p->state, "No package name allowed for variable %s in \"our\"", p->tokenbuf);
+        perl_warner(p->state, "No package name allowed for variable %s in \"our\"", p->tokenbuf);
       }
       perl_add_our_name(p, p->curstash, name);
       tmp = perl_add_my_name(p, name);
@@ -3188,7 +3191,7 @@ perl_pending_ident(perl_parser *p)
       return WORD;
     } else {
       if (has_colon) {
-        perl_warn(p->state, "\"my\" variable %s can't be in a package", p->tokenbuf);
+        perl_warner(p->state, "\"my\" variable %s can't be in a package", p->tokenbuf);
       }
       tmp = perl_add_my_name(p, name);
       yylval.opval = perl_new_variable_node(p, tmp);

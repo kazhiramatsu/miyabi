@@ -14,7 +14,7 @@ perl_saveptr(void *s, unsigned long len)
 }
 
 void
-perl_warn(perl_state *state, const char *format, ...)
+perl_warner(perl_state *state, const char *format, ...)
 {
   va_list ap;
 

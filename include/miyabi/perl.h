@@ -61,7 +61,7 @@ typedef struct perl_parser perl_parser;
 
 perl_state *perl_new(void);
 void *perl_saveptr(void *s, unsigned long len);
-void perl_warn(perl_state *state, const char *format, ...);
+void perl_warner(perl_state *state, const char *format, ...);
 void perl_croak(perl_state *state, const char *format, ...);
 void perl_parse_options(perl_state *state, int argc, char **argv);
 perl_scalar perl_str_init(struct perl_str *str);

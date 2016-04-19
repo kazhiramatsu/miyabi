@@ -105,16 +105,6 @@ node *perl_new_sub_node(perl_parser *p, node *startsub, node *subname,
 node *perl_new_use(perl_parser *p, int aver, node *floor,
                    node *version, node *id, node *arg);
 node *perl_new_package(perl_parser *p, node *name);
-static int yyparse(perl_parser *p);
-static int yylex(void *lval, perl_parser *p);
-static void yyerror(perl_parser *p, const char *s);
-static void perl_warner(perl_parser *p, const char *format, ...);
-static void yywarn(perl_parser *p, const char *s);
-static void yywarning(perl_parser *p, const char *s);
-static int perl_yylex(perl_parser *p);
-static void perl_warner(perl_parser *p, const char *format, ...);
-static void yywarn(perl_parser *p, const char *s);
-static void yyerror(perl_parser *p, const char *s);
 node *perl_new_block(perl_parser *p, node *block);
 node *perl_new_logical(perl_parser *p, enum perl_node_type type, node *first, node *other);
 node *perl_new_while(perl_parser *p, enum perl_node_type type, node *cond, node *block);
