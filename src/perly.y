@@ -6,11 +6,10 @@
 #include "miyabi/array.h"
 #include "miyabi/code.h"
 #include "miyabi/hash.h"
+#include "miyabi/opcode.h"
 #include "miyabi/parse.h"
 #include "miyabi/node.h"
-#include "miyabi/opcode.h"
 #include "miyabi/keywords.h"
-#include "miyabi/opcode.h"
 #include "miyabi/node.h"
 #include <stdarg.h>
 #include <assert.h>
@@ -30,36 +29,43 @@
 #define isUPPER(c)      ((c) >= 'A' && (c) <= 'Z')
 #define isLOWER(c)      ((c) >= 'a' && (c) <= 'z')
 
-#define isIDFIRST_lazy_if(c) ((c) < 0xc0 && isIDFIRST(c))
+#define isIDFIRST_lazy_if(c) ((*(unsigned char*)c) < 0xc0 && isIDFIRST(*(unsigned char *)c))
 #define isXDIGIT(c) (isxdigit((int)(unsigned char)(c)))
 #define SPACE_OR_TAB(c) ((c) == ' ' || (c) == '\t')
 
+#define REPORT(retval) perl_token_add(p, retval, &yylval),retval
+//#   define REPORT(retval) (retval)
 #define preblock(retval) (perl_token_add(p, retval, &yylval), p->bufptr = s, p->expect = XBLOCK, retval)
 #define term(retval)     (perl_token_add(p, retval, &yylval), p->bufptr = s, p->expect = XTERM, retval)
 #define operator(retval) (perl_token_add(p, retval, &yylval), p->bufptr = s, p->expect = XOPERATOR, retval)
+#define AOPERATOR(retval) ao(p, (p->expect = XTERM, p->bufptr = s, retval))
 #define token(retval)    (perl_token_add(p, retval, &yylval), p->bufptr = s, retval)
 #define ident(retval)    (perl_token_add(p, retval, &yylval), reset(p), retval)
-#define eop(f) (yylval.ival=f, perl_token_add(p, retval, &yylval), p->expect=XTERM, p->bufptr=s, ((int)EQOP))
-#define pmop(f)  (yylval.ival=f, perl_token_add(p, retval, &yylval), p->expect=XTERM, p->bufptr=s, ((int)MATCHOP))
+#define eop(f) (yylval.ival=f, perl_token_add(p, EQOP, &yylval), p->expect=XTERM, p->bufptr=s, ((int)EQOP))
+#define pmop(f)  (yylval.ival=f, REPORT(MATCHOP), p->expect=XTERM, p->bufptr=s, ((int)MATCHOP))
+#define BAop(f)  ao(p, (yylval.ival=f, p->expect=XTERM, p->bufptr=s, REPORT(BITANDOP),(int)BITANDOP))
+#define PREREF(retval) (p->expect = XREF,p->bufptr = s, REPORT(retval),retval)
 
 static const char ident_too_long[] = "Identifier too long";
 
 static const keyword keywords[] = {
-  { "sub",     KEY_sub,   false },
+  { "sub",     KEY_sub,     false },
   { "package", KEY_package, false },
-  { "use",     KEY_use,   false },
-  { "my",      KEY_my,    false },
+  { "use",     KEY_use,     false },
+  { "my",      KEY_my,      false },
   { "shift",   KEY_shift,   false },
   { "print",   KEY_print,   false },
-  { "our",     KEY_our,   false },
-  { "open",    KEY_open,   false },
-  { "if",      KEY_if,   false },
-  { "else",    KEY_else,   false },
+  { "our",     KEY_our,     false },
+  { "open",    KEY_open,    false },
+  { "if",      KEY_if,      false },
+  { "else",    KEY_else,    false },
   { "elsif",   KEY_elsif,   false },
-  { "unless",  KEY_unless,   false },
-  { "for",     KEY_for,   false },
+  { "unless",  KEY_unless,  false },
+  { "for",     KEY_for,     false },
   { "local",   KEY_local,   false },
-  { "qw",      KEY_qw,   false },
+  { "qw",      KEY_qw,      false },
+  { "eq",      KEY_eq,      false },
+  { "ne",      KEY_ne,      false },
 };
 
 /* for debug */
@@ -103,6 +109,8 @@ static const keyword tokens[] = {
   { "NOAMP", NOAMP },
   { "QWLIST", QWLIST },
   { "METHOD", METHOD },
+  { "OP_SNE", OP_SNE },
+  { "OP_SEQ", OP_SEQ },
 };
 
 static const keyword opcode[] = {
@@ -180,8 +188,8 @@ int perl_yylex(perl_parser *p);
 %left ','
 %right <ival> ASSIGNOP
 %right '?' ':'
-%nonassoc DOTDOT
-%left OROR
+%nonassoc DOTDOT YADAYADA
+%left OROR DORDOR
 %left ANDAND
 %left <ival> BITOROP
 %left <ival> BITANDOP
@@ -2476,7 +2484,7 @@ force_word(perl_parser *p, char *start, int token, int check_keyword, int allow_
   char *s = start;
   size_t len = 0;
 
-  if (isIDFIRST_lazy_if((unsigned char)*s) ||
+  if (isIDFIRST_lazy_if(s) ||
       (allow_pack && *s == ':'))
   {
     s = scan_word(p, s, p->tokenbuf, sizeof(p->tokenbuf), allow_pack, &len);
@@ -2507,6 +2515,29 @@ force_next(perl_parser *p, int token)
   return;
 }
 
+static void
+force_ident_maybe_lex(perl_parser *p, char pit)
+{
+    NEXTVAL_NEXTTOKE.ival = pit;
+    force_next(p, 'p');
+}
+
+static int
+ao(perl_parser *p, int toketype)
+{
+  if (*p->bufptr == '=') {
+    p->bufptr++;
+    if (toketype == ANDAND)
+      yylval.ival = OP_ANDASSIGN;
+    else if (toketype == OROR)
+      yylval.ival = OP_ORASSIGN;
+    else if (toketype == DORDOR)
+      yylval.ival = OP_DORASSIGN;
+    toketype = ASSIGNOP;
+  }
+  return REPORT(toketype);
+}
+
 int
 perl_sublex_start(perl_parser *p, int type)
 {
@@ -2534,8 +2565,10 @@ int
 perl_yylex(perl_parser *p)
 {
   int retval;
+  char *d;
   char *s;
-
+  _Bool bop = false;  
+  _Bool bof = false;
   s = p->bufptr;
   p->oldoldbufptr = p->oldbufptr;
   p->oldbufptr = s;
@@ -2653,7 +2686,9 @@ retry:
       s++;
       return token(WORD);
     }
-    s = scan_ident(p, s);
+    p->tokenbuf[0] = '$';
+    s = scan_ident(p, s, p->tokenbuf + 1,
+        sizeof p->tokenbuf - 1, false);
     fix(p);
     if (*s == '{') {
       p->tokenbuf[0] = '%';
@@ -2665,7 +2700,9 @@ retry:
     reset(p);
     save(p, *s);
     s++;
-    s = scan_ident(p, s);
+    p->tokenbuf[0] = '@';
+    s = scan_ident(p, s, p->tokenbuf + 1,
+        sizeof p->tokenbuf - 1, false);
     fix(p);
     yylval.ival = '@';
     p->pending_ident = '@';
@@ -2674,7 +2711,9 @@ retry:
     reset(p);
     save(p, *s);
     s++;
-    s = scan_ident(p, s);
+    p->tokenbuf[0] = '%';
+    s = scan_ident(p, s, p->tokenbuf + 1,
+        sizeof p->tokenbuf - 1, false);
     fix(p);
     yylval.ival = '%';
     p->pending_ident = '%';
@@ -2683,6 +2722,33 @@ retry:
     yylval.ival = ';';
     s++;
     return token(';');
+  case '&':
+    s++;
+    if (*s++ == '&') {
+      return AOPERATOR(ANDAND);
+    }
+    s--;
+    if (p->expect == XOPERATOR) {
+      d = s;
+      if (d == s) {
+        p->saw_infix_sigil = 1;
+        return BAop(bof ? OP_NBIT_AND : OP_BIT_AND);
+      }
+      else
+        return BAop(OP_SBIT_AND);
+    }
+
+    p->tokenbuf[0] = '&';
+    s = scan_ident(p, s - 1, p->tokenbuf + 1, sizeof p->tokenbuf - 1, true);
+    yylval.ival = 0;
+    if (p->tokenbuf[1]) {
+      force_ident_maybe_lex(p, '&');
+    }
+    else {
+      return PREREF('&');
+    }
+    return term('&');
+
   case '=':
     s++;
     {
@@ -2775,10 +2841,6 @@ retry:
     yylval.ival = ',';
     s++;
     return token(',');
-  case '&':
-    yylval.ival = '&';
-    s++;
-    return parse_word(p, s);
   case '[':
     yylval.ival = '[';
     s++;
@@ -3132,12 +3194,16 @@ reserved_word:
     } else {
       return token(LSTOP);
     }
+  case KEY_eq:
+	    return eop(OP_SEQ);
+  case KEY_ne:
+	    return eop(OP_SNE);
   }
   return 0;
 }
 
 char *
-scan_ident(perl_parser *p, char *s)
+scan_ident(perl_parser *p, char *s, char *dest, ssize_t destlen, int ck_uni)
 {
   if (isDIGIT(*s)) {
     while (isDIGIT(*s)) {

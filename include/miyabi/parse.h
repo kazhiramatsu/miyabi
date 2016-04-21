@@ -32,6 +32,7 @@ typedef enum lex_state {
   LEX_INTERPSTART,
   LEX_INTERPNORMAL,
   LEX_INTERPEND,
+  LEX_INTERPENDMAYBE,
   LEX_PAREN,
   LEX_USESTART,
 } lex_state;
@@ -40,12 +41,14 @@ typedef struct perl_node node;
 typedef enum perl_node_type node_type;
 
 struct perl_parser {
+  int saw_infix_sigil;
   _Bool saw_arrow;
   perl_state *state;
   int lex_starts;
   enum lex_state lex_state;
   int in_my;
   int lex_brackets;
+  int lex_fakebrack;
   int expect;
   int current;
   node *program;
@@ -142,8 +145,8 @@ perl_variable *perl_find_my_name(perl_parser *p, perl_scalar name);
 int keylookup(perl_parser *p, char *s, int word);
 void force_next(perl_parser *p, int token);
 int perl_sublex_start(perl_parser *p, int type);
+char *scan_ident(perl_parser *p, char *s, char *dest, ssize_t destlen, int ck_uni);
 int parse_word(perl_parser *p, char *s);
-char *scan_ident(perl_parser *p, char *s);
 int perl_pending_ident(perl_parser *p);
 void next(perl_parser *p);
 void pushback_n(perl_parser *p, char *buf, int n);
