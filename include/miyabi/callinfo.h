@@ -2,9 +2,9 @@
 #define PERL_CALLINFO_H
 
 typedef struct perl_callinfo {
-  perl_value *base;
-  perl_value *func;
-  perl_value *top;
+  perl_scalar *base;
+  perl_scalar *func;
+  perl_scalar *top;
   perl_instruction *pc;
   int nresults;
   struct perl_callinfo *prev;
