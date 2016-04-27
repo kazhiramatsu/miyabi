@@ -5,10 +5,17 @@ typedef struct perl_callinfo {
   perl_scalar *base;
   perl_scalar *func;
   perl_scalar *top;
-  perl_instruction *pc;
-  int nresults;
+  int gimme;
   struct perl_callinfo *prev;
   struct perl_callinfo *next;
+  union {
+    struct {
+      perl_scalar base;
+      perl_instruction *savedpc;
+    } p;
+    struct {
+    } c;
+  } u;
 } perl_callinfo;
 
 #endif

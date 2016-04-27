@@ -49,17 +49,14 @@ enum perl_node_type {
 struct perl_node {
   enum perl_node_type type;
   uint32_t flags;
+  size_t pos;
+  size_t line;
 };
 
 typedef struct perl_program_node {
   perl_node base;
   perl_node *program;
 } perl_program_node;
-
-typedef struct perl_comp_unit_node {
-  perl_node base;
-  perl_node *comp_unit;
-} perl_comp_unit_node;
 
 typedef struct perl_if_node {
   perl_node base;
@@ -122,6 +119,12 @@ typedef struct perl_statementlist_node {
   perl_node *next;
   perl_node *last;
 } perl_statementlist_node;
+
+typedef struct perl_statement_node {
+  perl_node base;
+  perl_scalar label;
+  perl_node *statement;
+} perl_statement_node;
 
 typedef struct perl_sub_node {
   perl_node base;
@@ -228,7 +231,6 @@ perl_binop_node *to_binop_node(perl_node *n);
 perl_block_node *to_block_node(perl_node *n);
 perl_unop_node *to_unop_node(perl_node *n);
 perl_logical_node *to_logical_node(perl_node *n);
-perl_comp_unit_node *to_comp_unit_node(perl_node *n);
 perl_for_node *to_for_node(perl_node *n);
 perl_use_node *to_use_node(perl_node *n);
 perl_const_node *to_const_node(perl_node *n);

@@ -134,6 +134,25 @@ enum OpMode {iABC, iABx, iAsBx, iAx};  /* basic instruction format */
 */
 #define NO_REG    MAXARG_A
 
+/*
+** R(x) - register
+** Kst(x) - constant (in constant table)
+** RK(x) == if ISK(x) then Kst(INDEXK(x)) else R(x)
+*/
+
+
+#define RA(i)	(base+GETARG_A(i))
+/* to be used after possible stack reallocation */
+#define RB(i)	check_exp(getBMode(GET_OPCODE(i)) == OpArgR, base+GETARG_B(i))
+#define RC(i)	check_exp(getCMode(GET_OPCODE(i)) == OpArgR, base+GETARG_C(i))
+#define RKB(i)	check_exp(getBMode(GET_OPCODE(i)) == OpArgK, \
+	ISK(GETARG_B(i)) ? k+INDEXK(GETARG_B(i)) : base+GETARG_B(i))
+#define RKC(i)	check_exp(getCMode(GET_OPCODE(i)) == OpArgK, \
+	ISK(GETARG_C(i)) ? k+INDEXK(GETARG_C(i)) : base+GETARG_C(i))
+#define KBx(i)  \
+  (k + (GETARG_Bx(i) != 0 ? GETARG_Bx(i) - 1 : GETARG_Ax(ci->u.p.savedpc++)))
+
+
 typedef enum {
 	OP_NULL		 = 0,
 	OP_STUB		 = 1,
