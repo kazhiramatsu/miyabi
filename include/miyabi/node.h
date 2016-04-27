@@ -211,7 +211,7 @@ typedef struct perl_sym_node {
 
 typedef struct perl_const_node {
   perl_node base;
-  perl_value value;
+  perl_scalar value;
 } perl_const_node;
 
 typedef struct keyword_s {
