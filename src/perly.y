@@ -45,6 +45,7 @@
 #define pmop(f)  (yylval.ival=f, REPORT(MATCHOP), p->expect=XTERM, p->bufptr=s, ((int)MATCHOP))
 #define BAop(f)  ao(p, (yylval.ival=f, p->expect=XTERM, p->bufptr=s, REPORT(BITANDOP),(int)BITANDOP))
 #define PREREF(retval) (p->expect = XREF,p->bufptr = s, REPORT(retval),retval)
+#define BOop(f)  ao(p, (yylval.ival=f, p->expect=XTERM, p->bufptr=s, REPORT(BITOROP), (int)BITOROP))
 
 static const char ident_too_long[] = "Identifier too long";
 
@@ -109,6 +110,7 @@ static const keyword tokens[] = {
   { "NOAMP", NOAMP },
   { "QWLIST", QWLIST },
   { "METHOD", METHOD },
+  { "OP_EQ", OP_EQ },
   { "OP_SNE", OP_SNE },
   { "OP_SEQ", OP_SEQ },
 };
@@ -686,7 +688,7 @@ termbinop   :   term ASSIGNOP term         /* $x = $y */
     {}
             /* { $$ = newBINOP($2, 0, scalar($1), scalar($3)); } */
     |   term EQOP term               /* $x == $y, $x eq $y */
-    {}
+    { $$ = perl_new_eqop(p, $2, $1, $3); }
             /* { $$ = newBINOP($2, 0, scalar($1), scalar($3)); } */
     |   term BITANDOP term             /* $x & $y */
     {}
@@ -698,10 +700,10 @@ termbinop   :   term ASSIGNOP term         /* $x = $y */
     {}
             /* { $$ = newRANGE($2, scalar($1), scalar($3));} */
     |   term ANDAND term             /* $x && $y */
-    {}
+    { $$ = perl_new_logical(p, NODE_AND, $1, $3); }
             /* { $$ = newLOGOP(OP_AND, 0, $1, $3); } */
     |   term OROR term               /* $x || $y */
-    {}
+    { $$ = perl_new_logical(p, NODE_OR, $1, $3); }
             /* { $$ = newLOGOP(OP_OR, 0, $1, $3); } */
     |   term MATCHOP term            /* $x =~ /$y/ */
     {}
@@ -1205,9 +1207,6 @@ assign_type(node *first, node *last)
 {
   enum perl_node_type t;
 
-  // if (first->type == NODE_SCALARVAR && last->type == NODE_CONST) {
-  //   t = NODE_KASSIGN
-  // }
   switch (first->type) {
     case NODE_SCALARVAR:
       t = NODE_SASSIGN;
@@ -1230,6 +1229,43 @@ perl_new_assign(perl_parser *p, node *first, node *last)
 
   n = malloc(sizeof(perl_binop_node));
   perl_init_node(p, &n->base, assign_type(first, last), 0);
+  n->first = first;
+  n->last = last;
+  return (node *)n;
+}
+
+static
+enum perl_node_type
+eqop_type(int eqop)
+{
+  enum perl_node_type t;
+
+  switch (eqop) {
+    case OP_EQ:
+      t = NODE_EQ;
+      break;
+    case OP_SEQ:
+      t = NODE_SEQ;   
+      break;
+    case OP_SNE:
+      t = NODE_SNE;   
+      break;
+    case OP_NE:
+      t = NODE_NE;   
+      break;
+    default:
+      break; 
+  }
+  return t;
+}
+
+node *
+perl_new_eqop(perl_parser *p, int eqop, node *first, node *last)
+{
+  perl_binop_node *n;
+
+  n = malloc(sizeof(perl_binop_node));
+  perl_init_node(p, &n->base, eqop_type(eqop), 0);
   n->first = first;
   n->last = last;
   return (node *)n;
@@ -1334,8 +1370,11 @@ perl_new_package(perl_parser *p, node *name)
                           perl_str_new(p->state, p->tokenbuf, p->tokenlen),
                           perl_hash_new(p->state),
                           true);
-  perl_add_our_name(p, p->curstash, v->sym);
+  if (stash == NULL) {
+    perl_add_our_name(p, p->defstash, v->sym);
+  }
   p->curstash = *stash;
+  p->curstashname = perl_str_cat(p->state, v->sym, perl_str_new(p->state, "::", 2)); 
   return (node *)n;
 }
 
@@ -1707,7 +1746,7 @@ perl_node_dump(node *n, int indent)
 
   switch (n->type) {
     default:
-      printf("other node\n");
+      printf("other node type = %d\n", n->type);
       break;
     case NODE_PROGRAM:
       printf("program:\n");
@@ -1946,6 +1985,38 @@ perl_node_dump(node *n, int indent)
         printf("\n");
       }
       break;
+    case NODE_EQ:
+      printf("op_eq\n");
+      {
+        perl_binop_node *v = to_binop_node(n);
+        perl_node_dump(v->first, indent+1);
+        perl_node_dump(v->last, indent+1);
+      }
+      break;
+    case NODE_SEQ:
+      printf("op_seq\n");
+      {
+        perl_binop_node *v = to_binop_node(n);
+        perl_node_dump(v->first, indent+1);
+        perl_node_dump(v->last, indent+1);
+      }
+      break;
+    case NODE_NE:
+      printf("op_ne\n");
+      {
+        perl_binop_node *v = to_binop_node(n);
+        perl_node_dump(v->first, indent+1);
+        perl_node_dump(v->last, indent+1);
+      }
+      break;
+    case NODE_SNE:
+      printf("op_sne\n");
+      {
+        perl_binop_node *v = to_binop_node(n);
+        perl_node_dump(v->first, indent+1);
+        perl_node_dump(v->last, indent+1);
+      }
+      break;
   }
 }
 
@@ -1976,7 +2047,8 @@ perl_parse_file(perl_state *state, char *file)
   p->linestr = malloc(p->bufsize);
   memset(p->linestr, 0, p->bufsize);
   p->f = f;
-  fread(p->linestr, sizeof(char), p->bufsize, p->f);
+  fread(p->linestr, sizeof(char), p->bufsize+1, p->f);
+  p->linestr[p->bufsize] = EOF;
   p->nexttoke->nexttoken = 0;
 
   p->bufptr = p->oldbufptr = p->oldoldbufptr = p->linestart = p->linestr; 
@@ -2060,29 +2132,6 @@ skip(perl_parser *p, char *s, char term)
     s++;
   }
   return s;
-}
-
-void
-next(perl_parser *p)
-{
-  int c;
-
-  if (feof(p->f)) {
-    p->current = -1;
-    return;
-  }
-  p->current = fgetc(p->f);
-  if (p->current == EOF) {
-    p->current = -1;
-  }
-  // if (p->line_idx == -1) {
-  //   if (fgets(p->linestr, 1024, p->f) != NULL){ 
-  //     p->line_idx = 0;
-  //   }
-  // }
-  // if ((p->current = p->linestr[p->line_idx++]) == '\n'){
-  //   p->line_idx = -1;
-  // }
 }
 
 inline static void
@@ -2748,7 +2797,28 @@ retry:
       return PREREF('&');
     }
     return term('&');
-
+  case '|':
+    s++;
+    if (*s++ == '|') {
+      return AOPERATOR(OROR);
+    }
+    s--;
+    d = s;
+    return BOop(bof ? s == d ? OP_NBIT_OR : OP_SBIT_OR : OP_BIT_OR);
+  case '!':
+    s++;
+    {
+      const char tmp = *s++;
+      if (tmp == '=') {
+        /* was this !=~ where !~ was meant?
+         * warn on m:!=~\s+([/?]|[msy]\W|tr\W): */
+        return eop(OP_NE);
+      }
+      if (tmp == '~')
+        return pmop(OP_NOT);
+    }
+    s--;
+    return operator('!');
   case '=':
     s++;
     {

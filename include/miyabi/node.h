@@ -40,6 +40,10 @@ enum perl_node_type {
   NODE_WHILE,
   NODE_UNTIL,
   NODE_GV,
+  NODE_EQ,
+  NODE_NE,
+  NODE_SEQ,
+  NODE_SNE,
 };
 
 struct perl_node {

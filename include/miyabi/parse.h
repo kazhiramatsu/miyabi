@@ -98,6 +98,7 @@ node *perl_prepend_elem(perl_parser *p, enum perl_node_type type, node *first, n
 node *perl_append_elem(perl_parser *p, enum perl_node_type type, node *first, node *last);
 node *perl_new_unop(perl_parser *p, enum perl_node_type type, node *first);
 node *perl_new_assign(perl_parser *p, node *first, node *last);
+node *perl_new_eqop(perl_parser *p, int eqop, node *first, node *last);
 node *perl_new_aelem(perl_parser *p, node *first, node *last);
 node *perl_new_call(perl_parser *p, enum perl_node_type type, node *name, node *args);
 node *perl_new_builtin_call(perl_parser *p, enum perl_node_type type, int op, node *indirob, node *args);
