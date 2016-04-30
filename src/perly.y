@@ -1097,15 +1097,15 @@ node_append_list(perl_parser *p, node *first, node *last)
 {
   if (!first) {
     node *new = node_statementlist_new(p, last);
-    to_statementlist_node(new)->last = new;
+    to_node_statementlist(new)->last = new;
     return new;
   }
   if (!last) {
     return first;
   }
-  node_statementlist *n = to_statementlist_node(first);
+  node_statementlist *n = to_node_statementlist(first);
   node *new = node_statementlist_new(p, last);
-  to_statementlist_node(n->last)->next = new;
+  to_node_statementlist(n->last)->next = new;
   n->last = new;
   return first;
 }
@@ -1159,7 +1159,7 @@ node_prepend_elem(perl_parser *p, enum perl_node_type type, node *first, node *l
     first = node_list_new(p, type, first);
   }
   last = node_list_new(p, type, last);
-  to_statementlist_node(last)->next = first;
+  to_node_statementlist(last)->next = first;
   return last;
 }
 
@@ -1168,7 +1168,7 @@ node_append_elem(perl_parser *p, enum perl_node_type type, node *first, node *la
 {
   if (!first) {
     node *new = node_list_new(p, type, last);
-    to_list_node(new)->last = new;
+    to_node_list(new)->last = new;
     return new;
   }
   if (!last) {
@@ -1176,15 +1176,15 @@ node_append_elem(perl_parser *p, enum perl_node_type type, node *first, node *la
   }
   if (first->type != NODE_LIST) {
     first = node_list_new(p, type, first);
-    node_list *n = to_list_node(first);
+    node_list *n = to_node_list(first);
     n->last = first;
   }
-  node_list *n = to_list_node(first);
+  node_list *n = to_node_list(first);
   node *new = node_list_new(p, type, last);
   if (!n->last) {
     n->last = new; 
   } else {
-    to_list_node(n->last)->next = new;
+    to_node_list(n->last)->next = new;
     n->last = new;
   }
   return first;
@@ -1336,7 +1336,7 @@ node_sub_new(perl_parser *p, node *startsub, node *subname,
   n->proto = proto;
   n->subattrlist = subattrlist;
   n->subbody = subbody;
-  perl_add_our_name(p, p->curstash, to_sym_node(subname)->sym);
+  perl_add_our_name(p, p->curstash, to_node_sym(subname)->sym);
   n->stash = p->curstash;
   n->stashname = p->curstashname;
 
@@ -1360,7 +1360,7 @@ node *
 node_package_new(perl_parser *p, node *name)
 {
   node_package *n;
-  node_sym *v = to_sym_node(name);
+  node_sym *v = to_node_sym(name);
   perl_scalar *stash;
 
   n = malloc(sizeof(node_package));
@@ -1456,7 +1456,7 @@ node_if_new(perl_parser *p, node *first, node *true_node, node *false_node)
     return node_logical_new(p, NODE_IF, first, true_node);
   }
   n = node_logical_new(p, NODE_IF, first, true_node);
-  logical = to_logical_node(n);
+  logical = to_node_logical(n);
   logical->next = false_node;
   return n;
 }
@@ -1581,7 +1581,7 @@ node_array_ref_new(perl_parser *p, node *name)
 {
   node_variable *n;
 
-  n = to_variable_node(name);
+  n = to_node_variable(name);
   if (n->base.type == NODE_ANYVAR) {
     n->base.type = NODE_ARRAYVAR;
   }
@@ -1593,7 +1593,7 @@ node_hash_ref_new(perl_parser *p, node *name)
 {
   node_variable *n;
 
-  n = to_variable_node(name);
+  n = to_node_variable(name);
   if (n->base.type == NODE_ANYVAR) {
     n->base.type = NODE_HASHVAR;
   }
@@ -1758,9 +1758,9 @@ perl_node_dump(node *n, int indent)
     case NODE_STATEMENTLIST:
       {
         printf("statementlist:\n");
-        node_statementlist *stmt = to_statementlist_node(n);
+        node_statementlist *stmt = to_node_statementlist(n);
         node_statementlist *iter;
-        for (iter = stmt; iter; iter = to_statementlist_node(iter->next)) {
+        for (iter = stmt; iter; iter = to_node_statementlist(iter->next)) {
           perl_node_dump(iter->statement, indent+1);
         }
       }
@@ -1768,14 +1768,14 @@ perl_node_dump(node *n, int indent)
     case NODE_PACKAGE:
       {
         printf("package:\n");
-        node_package *package = to_package_node(n);
+        node_package *package = to_node_package(n);
         perl_node_dump(package->name, indent+1);
       }
       break;
     case NODE_SUB:
       {
         printf("sub:\n");
-        node_sub *sub = to_sub_node(n);
+        node_sub *sub = to_node_sub(n);
         perl_node_dump(sub->subname, indent+1);
         for (int j=0; j<indent+1; j++) {
           printf("  ");
@@ -1789,7 +1789,7 @@ perl_node_dump(node *n, int indent)
     case NODE_SASSIGN:
       printf("sassign:\n");
       {
-        node_binop *binop = to_binop_node(n);
+        node_binop *binop = to_node_binop(n);
         perl_node_dump(binop->first, indent+1);
         perl_node_dump(binop->last, indent+1);
       }
@@ -1797,7 +1797,7 @@ perl_node_dump(node *n, int indent)
     case NODE_AASSIGN:
       printf("aassign:\n");
       {
-        node_binop *binop = to_binop_node(n);
+        node_binop *binop = to_node_binop(n);
         perl_node_dump(binop->first, indent+1);
         perl_node_dump(binop->last, indent+1);
       }
@@ -1805,7 +1805,7 @@ perl_node_dump(node *n, int indent)
     case NODE_BLOCK:
       printf("block:\n");
       {
-        node_block *block = to_block_node(n);
+        node_block *block = to_node_block(n);
         perl_lex_dump(block->variable, indent+1);
         perl_node_dump(block->statementlist, indent+1);
       }
@@ -1813,7 +1813,7 @@ perl_node_dump(node *n, int indent)
     case NODE_SCALARVAR:
       printf("scalar variable ");
       {
-        node_variable *v = to_variable_node(n);
+        node_variable *v = to_node_variable(n);
         perl_scalar_dump(v->variable->name); 
         printf("\n");
       }
@@ -1821,7 +1821,7 @@ perl_node_dump(node *n, int indent)
     case NODE_ARRAYVAR:
       printf("array variable ");
       {
-        node_variable *v = to_variable_node(n);
+        node_variable *v = to_node_variable(n);
         perl_scalar_dump(v->variable->name); 
         printf("\n");
       }
@@ -1829,7 +1829,7 @@ perl_node_dump(node *n, int indent)
     case NODE_HASHVAR:
       printf("hash varriable ");
       {
-        node_variable *v = to_variable_node(n);
+        node_variable *v = to_node_variable(n);
         perl_scalar_dump(v->variable->name);
         printf("\n");
       }
@@ -1837,7 +1837,7 @@ perl_node_dump(node *n, int indent)
     case NODE_CONST:
       printf("const ");
       {
-        node_const *v = to_const_node(n);
+        node_const *v = to_node_const(n);
         perl_scalar_dump(v->value);
         printf("\n");
       }
@@ -1845,16 +1845,16 @@ perl_node_dump(node *n, int indent)
     case NODE_NEGATE:
       printf("negate:\n");
       {
-        node_unop *v = to_unop_node(n);
+        node_unop *v = to_node_unop(n);
         perl_node_dump(v->first, indent+1);
       }
       break;
     case NODE_LIST:
       printf("list\n");
       {
-        node_list *l = to_list_node(n);
+        node_list *l = to_node_list(n);
         node_list *iter;
-        for (iter = l; iter; iter = to_list_node(iter->next)) {
+        for (iter = l; iter; iter = to_node_list(iter->next)) {
           perl_node_dump(iter->elem, indent+1);
         }
       }
@@ -1862,21 +1862,21 @@ perl_node_dump(node *n, int indent)
     case NODE_ANONLIST:
       printf("anonlist\n");
       {
-        node_unop *l = to_unop_node(n);
+        node_unop *l = to_node_unop(n);
         perl_node_dump(l->first, indent+1);
       }
       break;
     case NODE_ANONHASH:
       printf("anonhash\n");
       {
-        node_unop *l = to_unop_node(n);
+        node_unop *l = to_node_unop(n);
         perl_node_dump(l->first, indent+1);
       }
       break;
     case NODE_USE:
       printf("use\n");
       {
-        node_use *p = to_use_node(n);
+        node_use *p = to_node_use(n);
         perl_node_dump(p->id, indent+1);
         perl_node_dump(p->arg, indent+1);
       }
@@ -1884,7 +1884,7 @@ perl_node_dump(node *n, int indent)
     case NODE_AND:
       {
         printf("and\n");
-        node_logical *m = to_logical_node(n);
+        node_logical *m = to_node_logical(n);
         perl_node_dump(m->first, indent+1);
         perl_node_dump(m->other, indent+1);
         perl_node_dump(m->next, indent+1);
@@ -1893,7 +1893,7 @@ perl_node_dump(node *n, int indent)
     case NODE_OR:
       {
         printf("or\n");
-        node_logical *m = to_logical_node(n);
+        node_logical *m = to_node_logical(n);
         perl_node_dump(m->first, indent+1);
         perl_node_dump(m->other, indent+1);
         perl_node_dump(m->next, indent+1);
@@ -1902,7 +1902,7 @@ perl_node_dump(node *n, int indent)
     case NODE_FOR:
       {
         printf("for\n");
-        node_for *m = to_for_node(n);
+        node_for *m = to_node_for(n);
         perl_node_dump(m->sv, indent+1);
         perl_node_dump(m->expr, indent+1);
         perl_node_dump(m->block, indent+1);
@@ -1912,7 +1912,7 @@ perl_node_dump(node *n, int indent)
     case NODE_AELEM:
       {
         printf("aelem\n");
-        node_binop *m = to_binop_node(n);
+        node_binop *m = to_node_binop(n);
         perl_node_dump(m->first, indent+1);
         perl_node_dump(m->last, indent+1);
       }
@@ -1920,7 +1920,7 @@ perl_node_dump(node *n, int indent)
     case NODE_QWLIST:
       {
         printf("qwlist ");
-        node_value *m = to_value_node(n);
+        node_value *m = to_node_value(n);
         perl_scalar_dump(m->value); 
         printf("\n");
       }
@@ -1964,7 +1964,7 @@ perl_node_dump(node *n, int indent)
     case NODE_STR:
       printf("str ");
       {
-        node_value *v = to_value_node(n);
+        node_value *v = to_node_value(n);
         perl_scalar_dump(v->value);
         printf("\n");
       }
@@ -1972,7 +1972,7 @@ perl_node_dump(node *n, int indent)
     case NODE_NUMBER:
       printf("number ");
       {
-        node_const *v = to_const_node(n);
+        node_const *v = to_node_const(n);
         perl_scalar_dump(v->value);
         printf("\n");
       }
@@ -1980,7 +1980,7 @@ perl_node_dump(node *n, int indent)
     case NODE_SYM:
       printf("sym ");
       {
-        node_sym *v = to_sym_node(n);
+        node_sym *v = to_node_sym(n);
         perl_scalar_dump(v->sym);
         printf("\n");
       }
@@ -1988,7 +1988,7 @@ perl_node_dump(node *n, int indent)
     case NODE_EQ:
       printf("op_eq\n");
       {
-        node_binop *v = to_binop_node(n);
+        node_binop *v = to_node_binop(n);
         perl_node_dump(v->first, indent+1);
         perl_node_dump(v->last, indent+1);
       }
@@ -1996,7 +1996,7 @@ perl_node_dump(node *n, int indent)
     case NODE_SEQ:
       printf("op_seq\n");
       {
-        node_binop *v = to_binop_node(n);
+        node_binop *v = to_node_binop(n);
         perl_node_dump(v->first, indent+1);
         perl_node_dump(v->last, indent+1);
       }
@@ -2004,7 +2004,7 @@ perl_node_dump(node *n, int indent)
     case NODE_NE:
       printf("op_ne\n");
       {
-        node_binop *v = to_binop_node(n);
+        node_binop *v = to_node_binop(n);
         perl_node_dump(v->first, indent+1);
         perl_node_dump(v->last, indent+1);
       }
@@ -2012,7 +2012,7 @@ perl_node_dump(node *n, int indent)
     case NODE_SNE:
       printf("op_sne\n");
       {
-        node_binop *v = to_binop_node(n);
+        node_binop *v = to_node_binop(n);
         perl_node_dump(v->first, indent+1);
         perl_node_dump(v->last, indent+1);
       }
@@ -2515,7 +2515,7 @@ perl_find_my_name(perl_parser *p, perl_scalar name)
   perl_variable *v, *prev;
   node_block *b;
 
-  for (b = to_block_node(p->curblock); b; b = to_block_node(b->outer)) {
+  for (b = to_node_block(p->curblock); b; b = to_node_block(b->outer)) {
     for (v = b->variable; v; prev = v, v = v->next) {
       if (perl_str_eq(p->state, name, v->name)) {
         return v;
