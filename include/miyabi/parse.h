@@ -37,7 +37,6 @@ typedef enum lex_state {
   LEX_USESTART,
 } lex_state;
 
-typedef struct perl_node node;
 typedef enum perl_node_type node_type;
 
 struct perl_parser {
@@ -88,59 +87,57 @@ struct perl_parser {
 	perl_scalar subname;
 };
 
-node *perl_new_node(perl_parser *p, enum perl_node_type type, uint32_t flags);
+node *node_new(perl_parser *p, enum perl_node_type type, uint32_t flags);
 void perl_init_node(perl_parser *p, node *base, enum perl_node_type type, int flags);
-node *perl_new_statementlist(perl_parser *p, node *statement);
-node *perl_append_list(perl_parser *p, node *first, node *last);
-node *perl_new_list(perl_parser *p, enum perl_node_type type, node *elem);
-node *perl_convert(perl_parser *p, enum perl_node_type type, node *list);
-node *perl_prepend_elem(perl_parser *p, enum perl_node_type type, node *first, node *last);
-node *perl_append_elem(perl_parser *p, enum perl_node_type type, node *first, node *last);
-node *perl_new_unop(perl_parser *p, enum perl_node_type type, node *first);
-node *perl_new_assign(perl_parser *p, node *first, node *last);
-node *perl_new_eqop(perl_parser *p, int eqop, node *first, node *last);
-node *perl_new_aelem(perl_parser *p, node *first, node *last);
-node *perl_new_call(perl_parser *p, enum perl_node_type type, node *name, node *args);
-node *perl_new_builtin_call(perl_parser *p, enum perl_node_type type, int op, node *indirob, node *args);
-node *perl_new_unary_call(perl_parser *p, enum perl_node_type type, int op);
-node *perl_new_sub_node(perl_parser *p, node *startsub, node *subname,
-                        node *proto, node *subattrlist, node *subbody);
+node *node_new_statementlist(perl_parser *p, node *statement);
+node *node_append_list(perl_parser *p, node *first, node *last);
+node *node_list_new(perl_parser *p, enum perl_node_type type, node *elem);
+node *node_prepend_elem(perl_parser *p, enum perl_node_type type, node *first, node *last);
+node *node_append_elem(perl_parser *p, enum perl_node_type type, node *first, node *last);
+node *node_unop_new(perl_parser *p, enum perl_node_type type, node *first);
+node *node_assign_new(perl_parser *p, node *first, node *last);
+node *node_eq_new(perl_parser *p, int eqop, node *first, node *last);
+node *node_aelem_new(perl_parser *p, node *first, node *last);
+node *node_call_new(perl_parser *p, enum perl_node_type type, node *name, node *args);
+node *node_builtin_call_new(perl_parser *p, enum perl_node_type type, int op, node *indirob, node *args);
+node *node_unary_call_new(perl_parser *p, enum perl_node_type type, int op);
+node *node_sub_new(perl_parser *p, node *startsub, node *subname,
+                   node *proto, node *subattrlist, node *subbody);
 
-node *perl_new_use(perl_parser *p, int aver, node *floor,
+node *node_use_new(perl_parser *p, int aver, node *floor,
                    node *version, node *id, node *arg);
-node *perl_new_package(perl_parser *p, node *name);
-node *perl_new_block(perl_parser *p, node *block);
-node *perl_new_logical(perl_parser *p, enum perl_node_type type, node *first, node *other);
-node *perl_new_while(perl_parser *p, enum perl_node_type type, node *cond, node *block);
-node *perl_new_until(perl_parser *p, enum perl_node_type type, node *cond, node *block);
-node *perl_block_start(perl_parser *p);
-node *perl_block_end(perl_parser *p, node *block, node *statementlist);
-node *perl_new_for(perl_parser *p, node *sv, node *expr, node *block, node *cont);
-node *perl_new_if(perl_parser *p, node *first, node *true_node, node *false_node);
+node *node_package_new(perl_parser *p, node *name);
+node *node_block_new(perl_parser *p, node *block);
+node *node_logical_new(perl_parser *p, enum perl_node_type type, node *first, node *other);
+node *node_while_new(perl_parser *p, enum perl_node_type type, node *cond, node *block);
+node *node_until_new(perl_parser *p, enum perl_node_type type, node *cond, node *block);
+node *node_block_start(perl_parser *p);
+node *node_block_end(perl_parser *p, node *block, node *statementlist);
+node *node_for_new(perl_parser *p, node *sv, node *expr, node *block, node *cont);
+node *node_if_new(perl_parser *p, node *first, node *true_node, node *false_node);
 void perl_in_my(perl_parser *p, int status);
 void perl_lex_state(perl_parser *p, enum lex_state lex_state);
 node *perl_localize(perl_parser *p, node *n, int lex);
 node *perl_sawparens(perl_parser *p, node *n);
-node *perl_new_anonlist(perl_parser *p, node *node);
-node *perl_new_anonhash(perl_parser *p, node *node);
-node *perl_new_nulllist(perl_parser *p);
-node *perl_new_gvref(perl_parser *p, node *name);
-node *perl_new_svref(perl_parser *p, node *name);
-node *perl_new_avref(perl_parser *p, node *name);
-node *perl_new_hvref(perl_parser *p, node *name);
-perl_variable *perl_new_variable(perl_scalar name, int idx, enum perl_scope scope);
+node *node_anonlist_new(perl_parser *p, node *node);
+node *node_anonhash_new(perl_parser *p, node *node);
+node *node_nulllist_new(perl_parser *p);
+node *node_glob_ref_new(perl_parser *p, node *name);
+node *node_scalar_ref_new(perl_parser *p, node *name);
+node *node_array_ref_new(perl_parser *p, node *name);
+node *node_hash_ref_new(perl_parser *p, node *name);
+perl_variable *variable_new(perl_scalar name, int idx, enum perl_scope scope);
 perl_variable *perl_add_my_name(perl_parser *p, perl_scalar name);
-void perl_new_ast(perl_parser *p, node *n);
 void perl_token_dump(perl_parser *p);
 void perl_lex_dump(perl_variable *variable, int indent);
 void perl_node_dump(node *n, int indent);
 perl_parser *perl_parse_file(perl_state *state, char *file);
 perl_parser *perl_parser_new(perl_state *state);
 perl_scalar perl_add_our_name(perl_parser *p, perl_hash stash, perl_scalar n);
-node *perl_new_sym(perl_parser *p, perl_scalar s);
-node *perl_new_const(perl_parser *p, perl_value value);
-node *perl_new_variable_node(perl_parser *p, perl_variable *v);
-node *perl_new_qwlist(perl_parser *p, perl_scalar v);
+node *node_sym_new(perl_parser *p, perl_scalar s);
+node *node_const_new(perl_parser *p, perl_value value);
+node *node_variable_new(perl_parser *p, perl_variable *v);
+node *node_qwlist_new(perl_parser *p, perl_scalar v);
 char *scan_num(perl_parser *p, char *s);
 perl_variable *perl_find_my_name(perl_parser *p, perl_scalar name);
 int keylookup(perl_parser *p, char *s, int word);
@@ -149,13 +146,9 @@ int perl_sublex_start(perl_parser *p, int type);
 char *scan_ident(perl_parser *p, char *s, char *dest, ssize_t destlen, int ck_uni);
 int parse_word(perl_parser *p, char *s);
 int perl_pending_ident(perl_parser *p);
-void next(perl_parser *p);
-void pushback_n(perl_parser *p, char *buf, int n);
 void pushback(perl_parser *p, int c);
-_Bool peek(perl_parser *p, char *str, int n);
 _Bool find_our_name(perl_parser *p, char *tokenbuf, int tokenlen);
-node *perl_new_method_call(perl_parser *p, enum perl_node_type type, node *invovant, node *name, node *args);
-void perl_new_program(perl_parser *p, node *n);
+node *node_method_call_new(perl_parser *p, enum perl_node_type type, node *invovant, node *name, node *args);
 char *scan_word(perl_parser *p, char *s, char *tokenbuf, size_t destlen, _Bool allow_package, size_t *slp);
 
 

@@ -1,98 +1,98 @@
 #include "miyabi/node.h"
 
-perl_statementlist_node *
+node_statementlist *
 to_statementlist_node(perl_node *n)
 {
-  return (perl_statementlist_node *)n;
+  return (node_statementlist *)n;
 }
 
-perl_list_node *
+node_list *
 to_list_node(perl_node *n)
 {
-  return (perl_list_node *)n;
+  return (node_list *)n;
 }
 
-perl_value_node *
+node_value *
 to_value_node(perl_node *n)
 {
-  return (perl_value_node *)n;
+  return (node_value *)n;
 }
 
-perl_variable_node *
+node_variable *
 to_variable_node(perl_node *n)
 {
-  return (perl_variable_node *)n;
+  return (node_variable *)n;
 }
 
-perl_call_node *
+node_call *
 to_call_node(perl_node *n)
 {
-  return (perl_call_node *)n;
+  return (node_call *)n;
 }
 
-perl_package_node *
+node_package *
 to_package_node(perl_node *n)
 {
-  return (perl_package_node *)n;
+  return (node_package *)n;
 }
 
-perl_sub_node *
+node_sub *
 to_sub_node(perl_node *n)
 {
-  return (perl_sub_node *)n;
+  return (node_sub *)n;
 }
 
-perl_binop_node *
+node_binop *
 to_binop_node(perl_node *n)
 {
-  return (perl_binop_node *)n;
+  return (node_binop *)n;
 }
 
-perl_block_node *
+node_block *
 to_block_node(perl_node *n)
 {
-  return (perl_block_node *)n;
+  return (node_block *)n;
 }
 
-perl_unop_node *
+node_unop *
 to_unop_node(perl_node *n)
 {
-  return (perl_unop_node *)n;
+  return (node_unop *)n;
 }
 
-perl_logical_node *
+node_logical *
 to_logical_node(perl_node *n)
 {
-  return (perl_logical_node *)n;
+  return (node_logical *)n;
 }
 
-perl_for_node *
+node_for *
 to_for_node(perl_node *n)
 {
-  return (perl_for_node *)n;
+  return (node_for *)n;
 }
 
-perl_use_node *
+node_use *
 to_use_node(perl_node *n)
 {
-  return (perl_use_node *)n;
+  return (node_use *)n;
 }
 
-perl_const_node *
+node_const *
 to_const_node(perl_node *n)
 {
-  return (perl_const_node *)n;
+  return (node_const *)n;
 }
 
-perl_sym_node *
+node_sym *
 to_sym_node(perl_node *n)
 {
-  return (perl_sym_node *)n;
+  return (node_sym *)n;
 }
 
-perl_program_node *
-to_program_node(perl_node *n)
+node_program *
+to_node_program(perl_node *n)
 {
-  return (perl_program_node *)n;
+  return (node_program *)n;
 }
 

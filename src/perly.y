@@ -215,41 +215,41 @@ int perl_yylex(perl_parser *p);
 /* The whole program */
 prog  :   progstart
     /*CONTINUED*/ lineseq
-    { perl_new_program(p, perl_block_end(p, $1, $2)); }
+    { node_program_new(p, node_block_end(p, $1, $2)); }
             /* { $$ = $1; newPROG(block_end($1,$2)); } */
     ;
 
 /* An ordinary block */
 block :   '{' remember lineseq '}'
-    { $$ = perl_block_end(p, $2, $3); }
+    { $$ = node_block_end(p, $2, $3); }
     ;
 
 remember:   /* NULL */    /* start a full lexical scope */
-    { $$ = perl_block_start(p); }
+    { $$ = node_block_start(p); }
     ;
 
 progstart:
     {
       p->expect = XSTATE;
-      $$ = perl_block_start(p);
+      $$ = node_block_start(p);
     }
     ;
 
 mblock  :   '{' mremember lineseq '}'
-    { $$ = perl_block_end(p, $2, $3); }
+    { $$ = node_block_end(p, $2, $3); }
     ;
 
 mremember:    /* NULL */    /* start a partial lexical scope */
-    { $$ = perl_block_start(p); }
+    { $$ = node_block_start(p); }
     ;
 
 /* A collection of "lines" in the program */
 lineseq :   /* NULL */
     { $$ = NULL; }
     |   lineseq decl
-    { $$ = perl_append_list(p, $1, $2); }
+    { $$ = node_append_list(p, $1, $2); }
     |   lineseq line
-    { $$ = perl_append_list(p, $1, $2); }
+    { $$ = node_append_list(p, $1, $2); }
     ;
 
 /* A "line" in the program */
@@ -268,14 +268,14 @@ sideff  :   error
     |   expr
     { $$ = $1; }
     |   expr IF expr
-    { $$ = perl_new_logical(p, NODE_AND, $3, $1); }
+    { $$ = node_logical_new(p, NODE_AND, $3, $1); }
     |   expr UNLESS expr
-    { $$ = perl_new_logical(p, NODE_OR, $3, $1); }
+    { $$ = node_logical_new(p, NODE_OR, $3, $1); }
     |   expr WHILE expr
-    { $$ = perl_new_while(p, NODE_WHILE, $3, $1); }
+    { $$ = node_while_new(p, NODE_WHILE, $3, $1); }
             /* { $$ = newLOOPOP(OPf_PARENS, 1, scalar($3), $1); } */
     |   expr UNTIL iexpr
-    { $$ = perl_new_until(p, NODE_UNTIL, $3, $1); }
+    { $$ = node_until_new(p, NODE_UNTIL, $3, $1); }
             /* { $$ = newLOOPOP(OPf_PARENS, 1, $3, $1);} */
     |   expr FOR expr
     {}
@@ -290,17 +290,17 @@ else  :   /* NULL */
     { $$ = $2; }
             /* { ($2)->op_flags |= OPf_PARENS; $$ = scope($2); } */
     |   ELSIF '(' mexpr ')' mblock else
-    { $$ = perl_new_if(p, $3, $5, $6); }
+    { $$ = node_if_new(p, $3, $5, $6); }
     ;
 
 /* Real conditional expressions */
 cond  :   IF '(' remember mexpr ')' mblock else
-    { $$ = perl_block_end(p, $3, perl_new_if(p, $4, $6, $7)); }
+    { $$ = node_block_end(p, $3, node_if_new(p, $4, $6, $7)); }
             /* { PL_copline = (line_t)$1;        */
             /*     $$ = block_end($3,          */
             /*       newCONDOP(0, $4, scope($6), $7)); } */
     |   UNLESS '(' remember miexpr ')' mblock else
-    { $$ = perl_block_end(p, $3, perl_new_if(p, $4, $6, $7)); }
+    { $$ = node_block_end(p, $3, node_if_new(p, $4, $6, $7)); }
             /* { PL_copline = (line_t)$1;        */
             /*     $$ = block_end($3,          */
             /*       newCONDOP(0, $4, scope($6), $7)); } */
@@ -331,16 +331,16 @@ loop  :   label WHILE '(' remember mtexpr ')' mblock cont
             /*       newWHILEOP(0, 1, (LOOP*)Nullop, */
             /*            $2, $5, $7, $8))); }         */
     |   label FOR MY remember my_scalar '(' mexpr ')' mblock cont
-    { $$ = perl_block_end(p, $4, perl_new_for(p, $5, $7, $9, $10)); }
+    { $$ = node_block_end(p, $4, node_for_new(p, $5, $7, $9, $10)); }
             /* { $$ = block_end($4,                 */
             /*     newFOROP(0, $1, (line_t)$2, $5, $7, $9, $10)); } */
     |   label FOR scalar '(' remember mexpr ')' mblock cont
-    { $$ = perl_block_end(p, $5, perl_new_for(p, $3, $6, $8, $9)); }
+    { $$ = node_block_end(p, $5, node_for_new(p, $3, $6, $8, $9)); }
             /* { $$ = block_end($5,                 */
             /*     newFOROP(0, $1, (line_t)$2, mod($3, OP_ENTERLOOP), */
             /*          $6, $8, $9)); }                  */
     |   label FOR '(' remember mexpr ')' mblock cont
-    { $$ = perl_block_end(p, $4, perl_new_for(p, NULL, $5, $7, $8)); }
+    { $$ = node_block_end(p, $4, node_for_new(p, NULL, $5, $7, $8)); }
             /* { $$ = block_end($4,                  */
             /*     newFOROP(0, $1, (line_t)$2, Nullop, $5, $7, $8)); } */
     |   label FOR '(' remember mnexpr ';' mtexpr ';' mnexpr ')' mblock
@@ -453,7 +453,7 @@ mysubrout:    MYSUB startsub subname proto subattrlist subbody
 
 /* Subroutine definition */
 subrout :   SUB startsub subname proto subattrlist subbody
-    { $$ = perl_new_sub_node(p, $2, $3, $4, $5, $6); }
+    { $$ = node_sub_new(p, $2, $3, $4, $5, $6); }
             /* { newATTRSUB($2, $3, $4, $5, $6); } */
     ;
 
@@ -517,7 +517,7 @@ subbody :   block { $$ = $1; p->expect = XSTATE; }
     ;
 
 package :   PACKAGE WORD WORD ';'
-    { $$ = perl_new_package(p, $3); }
+    { $$ = node_package_new(p, $3); }
     |   PACKAGE ';'
     {}
             /* { package(Nullop); } */
@@ -527,16 +527,16 @@ use   :   USE startsub
     { }
              //{ CvSPECIAL_on(PL_compcv); /* It's a BEGIN {} */ }
         WORD WORD listexpr ';'
-    { $$ = perl_new_use(p, $1, $2, $4, $5, $6); }
+    { $$ = node_use_new(p, $1, $2, $4, $5, $6); }
             /* { utilize($1, $2, $4, $5, $6); } */
     ;
 
 /* Ordinary expressions; logical combinations */
 expr  :   expr ANDOP expr
-    { $$ = perl_new_logical(p, NODE_AND, $1, $3); }
+    { $$ = node_logical_new(p, NODE_AND, $1, $3); }
             /* { $$ = newLOGOP(OP_AND, 0, $1, $3); } */
     |   expr OROP expr
-    { $$ = perl_new_logical(p, NODE_OR, $1, $3); }
+    { $$ = node_logical_new(p, NODE_OR, $1, $3); }
             /* { $$ = newLOGOP($2, 0, $1, $3); } */
     |   argexpr %prec PREC_LOW
     { $$ = $1; }
@@ -547,7 +547,7 @@ argexpr :   argexpr ','
     { $$ = $1; }
             /* { $$ = $1; } */
     |   argexpr ',' term
-    { $$ = perl_append_elem(p, NODE_LIST, $1, $3); }
+    { $$ = node_append_elem(p, NODE_LIST, $1, $3); }
             /* { $$ = append_elem(OP_LIST, $1, $3); } */
     |   term %prec PREC_LOW
     { $$ = $1;}
@@ -555,41 +555,41 @@ argexpr :   argexpr ','
 
 /* List operators */
 listop  :   LSTOP indirob argexpr /* map {...} @args or print $fh @args */
-    { $$ = perl_new_builtin_call(p, NODE_CALL, $1, $2, $3); }
+    { $$ = node_builtin_call_new(p, NODE_CALL, $1, $2, $3); }
             /* { $$ = convert($1, OPf_STACKED,          */
             /*    prepend_elem(OP_LIST, newGVREF($1,$2), $3) ); } */
     |   FUNC '(' indirob expr ')'    /* print ($fh @args */
-    { $$ = perl_new_builtin_call(p, NODE_CALL, $1, $3, $4); }
+    { $$ = node_builtin_call_new(p, NODE_CALL, $1, $3, $4); }
             /* { $$ = convert($1, OPf_STACKED,          */
             /*    prepend_elem(OP_LIST, newGVREF($1,$3), $4) ); } */
     |   term ARROW method '(' listexprcom ')' /* $foo->bar(list) */
-    { $$ = perl_new_method_call(p, NODE_METHOD_CALL, $1, $3, $5); }
+    { $$ = node_method_call_new(p, NODE_METHOD_CALL, $1, $3, $5); }
             /* { $$ = convert(OP_ENTERSUB, OPf_STACKED,    */
             /*    append_elem(OP_LIST,             */
             /*      prepend_elem(OP_LIST, scalar($1), $5), */
             /*      newUNOP(OP_METHOD, 0, $3))); }       */
     |   term ARROW method           /* $foo->bar */
-    { $$ = perl_new_method_call(p, NODE_METHOD_CALL, $1, $3, NULL); }
+    { $$ = node_method_call_new(p, NODE_METHOD_CALL, $1, $3, NULL); }
             /* { $$ = convert(OP_ENTERSUB, OPf_STACKED, */
             /*    append_elem(OP_LIST, scalar($1),    */
             /*      newUNOP(OP_METHOD, 0, $3))); }    */
     |   METHOD indirob listexpr        /* new Class @args */
-    { $$ = perl_new_method_call(p, NODE_METHOD_CALL, $1, $2, $3);}
+    { $$ = node_method_call_new(p, NODE_METHOD_CALL, $1, $2, $3);}
             /* { $$ = convert(OP_ENTERSUB, OPf_STACKED, */
             /*    append_elem(OP_LIST,          */
             /*      prepend_elem(OP_LIST, $2, $3),    */
             /*      newUNOP(OP_METHOD, 0, $1))); }    */
     |   FUNCMETH indirob '(' listexprcom ')' /* method $object (@args) */
-    { $$ = perl_new_method_call(p, NODE_METHOD_CALL, $1, $2, $4); }
+    { $$ = node_method_call_new(p, NODE_METHOD_CALL, $1, $2, $4); }
             /* { $$ = convert(OP_ENTERSUB, OPf_STACKED, */
             /*    append_elem(OP_LIST,          */
             /*      prepend_elem(OP_LIST, $2, $4),    */
             /*      newUNOP(OP_METHOD, 0, $1))); }    */
     |   LSTOP listexpr             /* print @args */
-    { $$ = perl_new_builtin_call(p, NODE_CALL, $1, NULL, $2); }
+    { $$ = node_builtin_call_new(p, NODE_CALL, $1, NULL, $2); }
             /* { $$ = convert($1, 0, $2); } */
     |   FUNC '(' listexprcom ')'       /* print (@args) */
-    { $$ = perl_new_builtin_call(p, NODE_CALL, $1, NULL, $3); }
+    { $$ = node_builtin_call_new(p, NODE_CALL, $1, NULL, $3); }
             /* { $$ = convert($1, 0, $3); } */
     |   LSTOPSUB startanonsub block /* sub f(&@); f { foo } ... */
     {}
@@ -615,7 +615,7 @@ subscripted:  star '{' expr ';' '}'    /* *main::{something} */
             /* { $$ = newBINOP(OP_GELEM, 0, $1, scalar($3)); */
             /*     PL_expect = XOPERATOR; }          */
     |   scalar '[' expr ']'      /* $array[$element] */
-    { $$ = perl_new_aelem(p, $1, $3); }
+    { $$ = node_aelem_new(p, $1, $3); }
             /* { $$ = newBINOP(OP_AELEM, 0, oopsAV($1), scalar($3)); } */
     |   term ARROW '[' expr ']'    /* somearef->[$element] */
     {}
@@ -668,7 +668,7 @@ subscripted:  star '{' expr ';' '}'    /* *main::{something} */
 
 /* Binary operators between terms */
 termbinop   :   term ASSIGNOP term         /* $x = $y */
-    { $$ = perl_new_assign(p, $1, $3); }
+    { $$ = node_assign_new(p, $1, $3); }
             /* { $$ = newASSIGNOP(OPf_STACKED, $1, $2, $3); } */
     |   term POWOP term              /* $x ** $y */
     {}
@@ -688,7 +688,7 @@ termbinop   :   term ASSIGNOP term         /* $x = $y */
     {}
             /* { $$ = newBINOP($2, 0, scalar($1), scalar($3)); } */
     |   term EQOP term               /* $x == $y, $x eq $y */
-    { $$ = perl_new_eqop(p, $2, $1, $3); }
+    { $$ = node_eq_new(p, $2, $1, $3); }
             /* { $$ = newBINOP($2, 0, scalar($1), scalar($3)); } */
     |   term BITANDOP term             /* $x & $y */
     {}
@@ -700,10 +700,10 @@ termbinop   :   term ASSIGNOP term         /* $x = $y */
     {}
             /* { $$ = newRANGE($2, scalar($1), scalar($3));} */
     |   term ANDAND term             /* $x && $y */
-    { $$ = perl_new_logical(p, NODE_AND, $1, $3); }
+    { $$ = node_logical_new(p, NODE_AND, $1, $3); }
             /* { $$ = newLOGOP(OP_AND, 0, $1, $3); } */
     |   term OROR term               /* $x || $y */
-    { $$ = perl_new_logical(p, NODE_OR, $1, $3); }
+    { $$ = node_logical_new(p, NODE_OR, $1, $3); }
             /* { $$ = newLOGOP(OP_OR, 0, $1, $3); } */
     |   term MATCHOP term            /* $x =~ /$y/ */
     {}
@@ -712,7 +712,7 @@ termbinop   :   term ASSIGNOP term         /* $x = $y */
 
 /* Unary operators and terms */
 termunop : '-' term %prec UMINUS             /* -$x */
-    {  $$ = perl_new_unop(p, NODE_NEGATE, $2); }
+    {  $$ = node_unop_new(p, NODE_NEGATE, $2); }
             /* { $$ = newUNOP(OP_NEGATE, 0, scalar($2)); } */
     |   '+' term %prec UMINUS          /* +$x */
     {}
@@ -744,20 +744,20 @@ termunop : '-' term %prec UMINUS             /* -$x */
 
 /* Constructors for anonymous data */
 anonymous:    '[' expr ']'
-    { $$ = perl_new_anonlist(p, $2); }
+    { $$ = node_anonlist_new(p, $2); }
             /* { $$ = newANONLIST($2); } */
     |   '[' ']'
-    { $$ = perl_new_anonlist(p, NULL); }
+    { $$ = node_anonlist_new(p, NULL); }
             /* { $$ = newANONLIST(Nullop); } */
     |   HASHBRACK expr ';' '}'  %prec '(' /* { foo => "Bar" } */
-    { $$ = perl_new_anonhash(p, $2); }
+    { $$ = node_anonhash_new(p, $2); }
             /* { $$ = newANONHASH($2); } */
     |   HASHBRACK expr  '}'  %prec '(' /* { foo => "Bar" } */
-    { $$ = perl_new_anonhash(p, $2); }
+    { $$ = node_anonhash_new(p, $2); }
     |   HASHBRACK ';' '}'   %prec '(' /* { } (';' by tokener) */
-    { $$ = perl_new_anonhash(p, NULL); }
+    { $$ = node_anonhash_new(p, NULL); }
     |   HASHBRACK '}'   %prec '(' /* { } (';' by tokener) */
-    { $$ = perl_new_anonhash(p, NULL); }
+    { $$ = node_anonhash_new(p, NULL); }
             /* { $$ = newANONHASH(Nullop); } */
     |   ANONSUB startanonsub proto subattrlist block  %prec '('
     {}
@@ -828,7 +828,7 @@ term  :   termbinop
     | QWLIST
     { $$ = $1; }
     |   '(' ')'
-    { $$ = perl_sawparens(p, perl_new_nulllist(p)); }
+    { $$ = perl_sawparens(p, node_nulllist_new(p)); }
             /* { $$ = sawparens(newNULLLIST()); } */
     |   scalar  %prec '('
     { $$ = $1; }
@@ -874,13 +874,13 @@ term  :   termbinop
     |   THING %prec '('
             { $$ = $1; }
     |   amper                /* &foo; */
-    { $$ = perl_new_call(p, NODE_CALL, $1, NULL); }
+    { $$ = node_call_new(p, NODE_CALL, $1, NULL); }
             /* { $$ = newUNOP(OP_ENTERSUB, 0, scalar($1)); } */
     |   amper '(' ')'            /* &foo() */
-    { $$ = perl_new_call(p, NODE_CALL, $1, NULL); }
+    { $$ = node_call_new(p, NODE_CALL, $1, NULL); }
             /* { $$ = newUNOP(OP_ENTERSUB, OPf_STACKED, scalar($1)); } */
     |   amper '(' expr ')'           /* &foo(@args) */
-    { $$ = perl_new_call(p, NODE_CALL, $1, $3); }
+    { $$ = node_call_new(p, NODE_CALL, $1, $3); }
             /* { $$ = newUNOP(OP_ENTERSUB, OPf_STACKED,   */
             /*     append_elem(OP_LIST, $3, scalar($1))); } */
     |   NOAMP WORD listexpr          /* foo(@args) */
@@ -898,7 +898,7 @@ term  :   termbinop
     {}
             /* { $$ = newUNOP(OP_NOT, 0, scalar($2)); } */
     |   UNIOP                /* Unary op, $_ implied */
-    { $$ = perl_new_unary_call(p, NODE_CALL, $1); }
+    { $$ = node_unary_call_new(p, NODE_CALL, $1); }
             /* { $$ = newOP($1, 0); } */
     |   UNIOP block              /* eval { foo }, I *think* */
     {}
@@ -953,7 +953,7 @@ myterm  :   '(' expr ')'
     { $$ = perl_sawparens(p, $2); }
             /* { $$ = sawparens($2); } */
     |   '(' ')'
-    { $$ = perl_sawparens(p, perl_new_nulllist(p)); }
+    { $$ = perl_sawparens(p, node_nulllist_new(p)); }
             /* { $$ = sawparens(newNULLLIST()); } */
     |   scalar  %prec '('
     { $$ = $1;}
@@ -999,18 +999,18 @@ amper :   '&' indirob
     ;
 
 scalar  :   '$' indirob
-    {  $$ = perl_new_svref(p, $2); }
+    {  $$ = node_scalar_ref_new(p, $2); }
             /* { $$ = newSVREF($2); } */
 
     ;
 
 ary   :   '@' indirob
-    {  $$ = perl_new_avref(p, $2); }
+    {  $$ = node_array_ref_new(p, $2); }
             /* { $$ = newAVREF($2); } */
     ;
 
 hsh   :   '%' indirob
-    {  $$ = perl_new_hvref(p, $2); }
+    {  $$ = node_hash_ref_new(p, $2); }
             /* { $$ = newHVREF($2); } */
     ;
 
@@ -1063,7 +1063,7 @@ token_t *perl_token_new(perl_parser *p, int type, YYSTYPE *lval);
 token_t *perl_token_add(perl_parser *p, int type, YYSTYPE *lval);
 
 node *
-perl_new_node(perl_parser *p, enum perl_node_type type, uint32_t flags)
+node_new(perl_parser *p, enum perl_node_type type, uint32_t flags)
 {
   node *n;
   
@@ -1081,11 +1081,11 @@ perl_init_node(perl_parser *p, node *base, enum perl_node_type type, int flags)
 }
 
 node *
-perl_new_statementlist(perl_parser *p, node *statement)
+node_statementlist_new(perl_parser *p, node *statement)
 {
-  perl_statementlist_node *n;
+  node_statementlist *n;
 
-  n = malloc(sizeof(perl_statementlist_node));
+  n = malloc(sizeof(node_statementlist));
   perl_init_node(p, &n->base, NODE_STATEMENTLIST, 0);
   n->statement = statement;
   n->next = NULL;
@@ -1093,29 +1093,29 @@ perl_new_statementlist(perl_parser *p, node *statement)
 }
 
 node *
-perl_append_list(perl_parser *p, node *first, node *last)
+node_append_list(perl_parser *p, node *first, node *last)
 {
   if (!first) {
-    node *new = perl_new_statementlist(p, last);
+    node *new = node_statementlist_new(p, last);
     to_statementlist_node(new)->last = new;
     return new;
   }
   if (!last) {
     return first;
   }
-  perl_statementlist_node *n = to_statementlist_node(first);
-  node *new = perl_new_statementlist(p, last);
+  node_statementlist *n = to_statementlist_node(first);
+  node *new = node_statementlist_new(p, last);
   to_statementlist_node(n->last)->next = new;
   n->last = new;
   return first;
 }
 
 node *
-perl_new_method_call(perl_parser *p, enum perl_node_type type, node *invocant, node *name, node *args)
+node_method_call_new(perl_parser *p, enum perl_node_type type, node *invocant, node *name, node *args)
 {
-  perl_method_call_node *n;
+  node_method_call *n;
 
-  n = malloc(sizeof(perl_method_call_node));
+  n = malloc(sizeof(node_method_call));
   perl_init_node(p, &n->base, type, 0);
   n->invocant = invocant;
   n->name = name;
@@ -1124,11 +1124,11 @@ perl_new_method_call(perl_parser *p, enum perl_node_type type, node *invocant, n
 }
 
 node *
-perl_new_list(perl_parser *p, enum perl_node_type type, node *elem)
+node_list_new(perl_parser *p, enum perl_node_type type, node *elem)
 {
-  perl_list_node *n;
+  node_list *n;
 
-  n = malloc(sizeof(perl_list_node));
+  n = malloc(sizeof(node_list));
   perl_init_node(p, &n->base, type, 0);
   n->elem = elem;
   n->next = NULL;
@@ -1140,34 +1140,34 @@ node *
 perl_convert(perl_parser *p, enum perl_node_type type, node *list)
 {
   if (!list || list->type != NODE_LIST) {
-    list = perl_new_list(p, type, list);
+    list = node_list_new(p, type, list);
   }
   list->type = type;
   return list;
 }
 
 node *
-perl_prepend_elem(perl_parser *p, enum perl_node_type type, node *first, node *last)
+node_prepend_elem(perl_parser *p, enum perl_node_type type, node *first, node *last)
 {
   if (!last) {
     return first;
   }
   if (!first) {
-    return perl_new_list(p, type, last);
+    return node_list_new(p, type, last);
   }
   if (first->type != NODE_LIST) {
-    first = perl_new_list(p, type, first);
+    first = node_list_new(p, type, first);
   }
-  last = perl_new_list(p, type, last);
+  last = node_list_new(p, type, last);
   to_statementlist_node(last)->next = first;
   return last;
 }
 
 node *
-perl_append_elem(perl_parser *p, enum perl_node_type type, node *first, node *last)
+node_append_elem(perl_parser *p, enum perl_node_type type, node *first, node *last)
 {
   if (!first) {
-    node *new = perl_new_list(p, type, last);
+    node *new = node_list_new(p, type, last);
     to_list_node(new)->last = new;
     return new;
   }
@@ -1175,12 +1175,12 @@ perl_append_elem(perl_parser *p, enum perl_node_type type, node *first, node *la
     return first;
   }
   if (first->type != NODE_LIST) {
-    first = perl_new_list(p, type, first);
-    perl_list_node *n = to_list_node(first);
+    first = node_list_new(p, type, first);
+    node_list *n = to_list_node(first);
     n->last = first;
   }
-  perl_list_node *n = to_list_node(first);
-  node *new = perl_new_list(p, type, last);
+  node_list *n = to_list_node(first);
+  node *new = node_list_new(p, type, last);
   if (!n->last) {
     n->last = new; 
   } else {
@@ -1191,11 +1191,11 @@ perl_append_elem(perl_parser *p, enum perl_node_type type, node *first, node *la
 }
 
 node *
-perl_new_unop(perl_parser *p, enum perl_node_type type, node *first)
+node_unop_new(perl_parser *p, enum perl_node_type type, node *first)
 {
-  perl_unop_node *n;
+  node_unop *n;
 
-  n = malloc(sizeof(perl_unop_node));
+  n = malloc(sizeof(node_unop));
   perl_init_node(p, &n->base, type, 0); 
   n->first = first;
   return (node *)n;
@@ -1223,11 +1223,11 @@ assign_type(node *first, node *last)
 }
 
 node *
-perl_new_assign(perl_parser *p, node *first, node *last)
+node_assign_new(perl_parser *p, node *first, node *last)
 {
-  perl_binop_node *n;
+  node_binop *n;
 
-  n = malloc(sizeof(perl_binop_node));
+  n = malloc(sizeof(node_binop));
   perl_init_node(p, &n->base, assign_type(first, last), 0);
   n->first = first;
   n->last = last;
@@ -1260,11 +1260,11 @@ eqop_type(int eqop)
 }
 
 node *
-perl_new_eqop(perl_parser *p, int eqop, node *first, node *last)
+node_eq_new(perl_parser *p, int eqop, node *first, node *last)
 {
-  perl_binop_node *n;
+  node_binop *n;
 
-  n = malloc(sizeof(perl_binop_node));
+  n = malloc(sizeof(node_binop));
   perl_init_node(p, &n->base, eqop_type(eqop), 0);
   n->first = first;
   n->last = last;
@@ -1272,11 +1272,11 @@ perl_new_eqop(perl_parser *p, int eqop, node *first, node *last)
 }
 
 node *
-perl_new_aelem(perl_parser *p, node *first, node *last)
+node_aelem_new(perl_parser *p, node *first, node *last)
 {
-  perl_binop_node *n;
+  node_binop *n;
 
-  n = malloc(sizeof(perl_binop_node));
+  n = malloc(sizeof(node_binop));
   perl_init_node(p, &n->base, NODE_AELEM, 0);
   n->first = first;
   n->last = last;
@@ -1284,11 +1284,11 @@ perl_new_aelem(perl_parser *p, node *first, node *last)
 }
 
 node *
-perl_new_call(perl_parser *p, enum perl_node_type type, node *name, node *args)
+node_call_new(perl_parser *p, enum perl_node_type type, node *name, node *args)
 {
-  perl_call_node *n;
+  node_call *n;
 
-  n = malloc(sizeof(perl_call_node));
+  n = malloc(sizeof(node_call));
   perl_init_node(p, &n->base, NODE_CALL, 0);
   n->name = name;
   n->indirob = NULL;
@@ -1297,11 +1297,11 @@ perl_new_call(perl_parser *p, enum perl_node_type type, node *name, node *args)
 }
 
 node *
-perl_new_builtin_call(perl_parser *p, enum perl_node_type type, int op, node *indirob, node *args)
+node_builtin_call_new(perl_parser *p, enum perl_node_type type, int op, node *indirob, node *args)
 {
-  perl_call_node *n;
+  node_call *n;
 
-  n = malloc(sizeof(perl_call_node));
+  n = malloc(sizeof(node_call));
   perl_init_node(p, &n->base, NODE_CALL, 0);
   n->op = op;
   n->indirob = indirob;
@@ -1310,11 +1310,11 @@ perl_new_builtin_call(perl_parser *p, enum perl_node_type type, int op, node *in
 }
 
 node *
-perl_new_unary_call(perl_parser *p, enum perl_node_type type, int op)
+node_unary_call_new(perl_parser *p, enum perl_node_type type, int op)
 {
-  perl_call_node *n;
+  node_call *n;
 
-  n = malloc(sizeof(perl_call_node));
+  n = malloc(sizeof(node_call));
   perl_init_node(p, &n->base, NODE_CALL, 0);
   n->op = op;
   n->name = NULL;
@@ -1324,12 +1324,12 @@ perl_new_unary_call(perl_parser *p, enum perl_node_type type, int op)
 }
 
 node *
-perl_new_sub_node(perl_parser *p, node *startsub, node *subname,
-                  node *proto, node *subattrlist, node *subbody)
+node_sub_new(perl_parser *p, node *startsub, node *subname,
+             node *proto, node *subattrlist, node *subbody)
 {
-  perl_sub_node *n;
+  node_sub *n;
 
-  n = malloc(sizeof(perl_sub_node));
+  n = malloc(sizeof(node_sub));
   perl_init_node(p, &n->base, NODE_SUB, 0);
   n->startsub = startsub;
   n->subname = subname;
@@ -1344,12 +1344,12 @@ perl_new_sub_node(perl_parser *p, node *startsub, node *subname,
 }
 
 node *
-perl_new_use(perl_parser *p, int aver, node *floor,
+node_use_new(perl_parser *p, int aver, node *floor,
              node *version, node *id, node *arg)
 {
-  perl_use_node *n;
+  node_use *n;
 
-  n = malloc(sizeof(perl_use_node));
+  n = malloc(sizeof(node_use));
   perl_init_node(p, &n->base, NODE_USE, 0);
   n->id = id;
   n->arg = arg;
@@ -1357,13 +1357,13 @@ perl_new_use(perl_parser *p, int aver, node *floor,
 }
 
 node *
-perl_new_package(perl_parser *p, node *name)
+node_package_new(perl_parser *p, node *name)
 {
-  perl_package_node *n;
-  perl_sym_node *v = to_sym_node(name);
+  node_package *n;
+  node_sym *v = to_sym_node(name);
   perl_scalar *stash;
 
-  n = malloc(sizeof(perl_package_node));
+  n = malloc(sizeof(node_package));
   perl_init_node(p, &n->base, NODE_PACKAGE, 0);
   n->name = name;
   stash = perl_hash_fetch(p->state, p->defstash,
@@ -1392,11 +1392,11 @@ yyerror(perl_parser *p, const char *s)
 }
 
 node *
-perl_new_block(perl_parser *p, node *block)
+node_block_new(perl_parser *p, node *block)
 {
-  perl_block_node *n;
+  node_block *n;
 
-  n = malloc(sizeof(perl_block_node));
+  n = malloc(sizeof(node_block));
   perl_init_node(p, &n->base, NODE_BLOCK, 0);
   n->outer = block;
   n->variable = NULL;
@@ -1406,21 +1406,21 @@ perl_new_block(perl_parser *p, node *block)
 }
 
 node *
-perl_block_start(perl_parser *p)
+node_block_start(perl_parser *p)
 {
   node *block;
 
-  block = perl_new_block(p, p->curblock);
+  block = node_block_new(p, p->curblock);
   p->curblock = block;
   return block;
 }
 
 node *
-perl_block_end(perl_parser *p, node *block, node *statementlist)
+node_block_end(perl_parser *p, node *block, node *statementlist)
 {
   if (!block) return NULL;
 
-  perl_block_node *b = (perl_block_node *)block;
+  node_block *b = (node_block *)block;
 
   if (b->outer) {
     p->curblock = b->outer;
@@ -1430,11 +1430,11 @@ perl_block_end(perl_parser *p, node *block, node *statementlist)
 }
 
 node *
-perl_new_for(perl_parser *p, node *sv, node *expr, node *block, node *cont)
+node_for_new(perl_parser *p, node *sv, node *expr, node *block, node *cont)
 {
-  perl_for_node *n;
+  node_for *n;
 
-  n = malloc(sizeof(perl_for_node));
+  n = malloc(sizeof(node_for));
   perl_init_node(p, &n->base, NODE_FOR, 0);
   n->sv = sv;
   n->expr = expr;
@@ -1444,29 +1444,29 @@ perl_new_for(perl_parser *p, node *sv, node *expr, node *block, node *cont)
 }
 
 node *
-perl_new_if(perl_parser *p, node *first, node *true_node, node *false_node)
+node_if_new(perl_parser *p, node *first, node *true_node, node *false_node)
 {
-  perl_logical_node *logical;
+  node_logical *logical;
   perl_node *n;
 
   if (!true_node) {
-    return perl_new_logical(p, NODE_IF, first, false_node);
+    return node_logical_new(p, NODE_IF, first, false_node);
   }
   if (!false_node) {
-    return perl_new_logical(p, NODE_IF, first, true_node);
+    return node_logical_new(p, NODE_IF, first, true_node);
   }
-  n = perl_new_logical(p, NODE_IF, first, true_node);
+  n = node_logical_new(p, NODE_IF, first, true_node);
   logical = to_logical_node(n);
   logical->next = false_node;
   return n;
 }
 
 node *
-perl_new_logical(perl_parser *p, enum perl_node_type type, node *first, node *other)
+node_logical_new(perl_parser *p, enum perl_node_type type, node *first, node *other)
 {
-  perl_logical_node *n;
+  node_logical *n;
 
-  n = malloc(sizeof(perl_logical_node));
+  n = malloc(sizeof(node_logical));
   perl_init_node(p, &n->base, type, 0);
   n->first = first;
   n->other = other;
@@ -1475,11 +1475,11 @@ perl_new_logical(perl_parser *p, enum perl_node_type type, node *first, node *ot
 }
 
 node *
-perl_new_while(perl_parser *p, enum perl_node_type type, node *cond, node *block)
+node_while_new(perl_parser *p, enum perl_node_type type, node *cond, node *block)
 {
-  perl_loop_node *n;
+  node_loop *n;
 
-  n = malloc(sizeof(perl_loop_node));
+  n = malloc(sizeof(node_loop));
   perl_init_node(p, &n->base, type, 0);
   n->cond = cond;
   n->block = block;
@@ -1487,11 +1487,11 @@ perl_new_while(perl_parser *p, enum perl_node_type type, node *cond, node *block
 }
 
 node *
-perl_new_until(perl_parser *p, enum perl_node_type type, node *cond, node *block)
+node_until_new(perl_parser *p, enum perl_node_type type, node *cond, node *block)
 {
-  perl_loop_node *n;
+  node_loop *n;
 
-  n = malloc(sizeof(perl_loop_node));
+  n = malloc(sizeof(node_loop));
   perl_init_node(p, &n->base, type, 0);
   n->cond = cond;
   n->block = block;
@@ -1525,33 +1525,33 @@ perl_sawparens(perl_parser *p, node *n)
 }
 
 node *
-perl_new_anonlist(perl_parser *p, node *first)
+node_anonlist_new(perl_parser *p, node *first)
 {
-  perl_unop_node *n;
+  node_unop *n;
 
-  n = malloc(sizeof(perl_unop_node));
+  n = malloc(sizeof(node_unop));
   perl_init_node(p, &n->base, NODE_ANONLIST, 0);
   n->first = first;
   return (node *)n;
 }
 
 node *
-perl_new_anonhash(perl_parser *p, node *first)
+node_anonhash_new(perl_parser *p, node *first)
 {
-  perl_unop_node *n;
+  node_unop *n;
 
-  n = malloc(sizeof(perl_unop_node));
+  n = malloc(sizeof(node_unop));
   perl_init_node(p, &n->base, NODE_ANONHASH, 0);
   n->first = first;
   return (node *)n;
 }
 
 node *
-perl_new_nulllist(perl_parser *p)
+node_nulllist_new(perl_parser *p)
 {
-  perl_list_node *n;
+  node_list *n;
 
-  n = malloc(sizeof(perl_list_node));
+  n = malloc(sizeof(node_list));
   perl_init_node(p, &n->base, NODE_LIST, 0);
   n->op = 0;
   n->elem = NULL;
@@ -1560,14 +1560,14 @@ perl_new_nulllist(perl_parser *p)
 }
 
 node *
-perl_new_gvref(perl_parser *p, node *n)
+node_glob_ref_new(perl_parser *p, node *n)
 {
   n->type = NODE_GV;
   return (node *)n;
 }
 
 node *
-perl_new_svref(perl_parser *p, node *n)
+node_scalar_ref_new(perl_parser *p, node *n)
 {
   if (n->type == NODE_ANYVAR) {
     n->type = NODE_SCALARVAR;
@@ -1577,9 +1577,9 @@ perl_new_svref(perl_parser *p, node *n)
 }
 
 node *
-perl_new_avref(perl_parser *p, node *name)
+node_array_ref_new(perl_parser *p, node *name)
 {
-  perl_variable_node *n;
+  node_variable *n;
 
   n = to_variable_node(name);
   if (n->base.type == NODE_ANYVAR) {
@@ -1589,9 +1589,9 @@ perl_new_avref(perl_parser *p, node *name)
 }
 
 node *
-perl_new_hvref(perl_parser *p, node *name)
+node_hash_ref_new(perl_parser *p, node *name)
 {
-  perl_variable_node *n;
+  node_variable *n;
 
   n = to_variable_node(name);
   if (n->base.type == NODE_ANYVAR) {
@@ -1601,7 +1601,7 @@ perl_new_hvref(perl_parser *p, node *name)
 }
 
 perl_variable *
-perl_new_variable(perl_scalar name, int idx, enum perl_scope scope)
+variable_new(perl_scalar name, int idx, enum perl_scope scope)
 {
   perl_variable *variable;
 
@@ -1618,10 +1618,10 @@ perl_add_my_name(perl_parser *p, perl_scalar name)
 {
   int idx = 0;
   perl_variable *v, *prev;
-  perl_block_node *b = (perl_block_node *)(p->curblock);
+  node_block *b = (node_block *)(p->curblock);
  
   if (b->variable == NULL) {
-    v = perl_new_variable(name, idx, PERL_SCOPE_MY);
+    v = variable_new(name, idx, PERL_SCOPE_MY);
     b->variable = v;
     return v;
   }
@@ -1633,17 +1633,17 @@ perl_add_my_name(perl_parser *p, perl_scalar name)
     }
     idx++;
   }
-  perl_variable *var = perl_new_variable(name, idx, PERL_SCOPE_MY);
+  perl_variable *var = variable_new(name, idx, PERL_SCOPE_MY);
   prev->next = var;
   return var;
 }
 
 void
-perl_new_program(perl_parser *p, node *n)
+node_program_new(perl_parser *p, node *n)
 {
-  perl_program_node *prog;
+  node_program *prog;
 
-  prog = malloc(sizeof(perl_program_node)); 
+  prog = malloc(sizeof(node_program)); 
   prog->base.type = NODE_PROGRAM;
   prog->program = n;
 
@@ -1721,7 +1721,7 @@ int
 perl_call_op_dump(node *n, int indent)
 {
   int i, j;
-  perl_call_node *node = (perl_call_node *)n;
+  node_call *node = (node_call *)n;
 
   for (i = 0; i < sizeof(builtins)/sizeof(keyword); i++) {
     if (builtins[i].key_id == node->op) {
@@ -1751,15 +1751,15 @@ perl_node_dump(node *n, int indent)
     case NODE_PROGRAM:
       printf("program:\n");
       {
-        perl_program_node *prog = to_program_node(n);
+        node_program *prog = to_node_program(n);
         perl_node_dump(prog->program, indent+1);
       }
       break;
     case NODE_STATEMENTLIST:
       {
         printf("statementlist:\n");
-        perl_statementlist_node *stmt = to_statementlist_node(n);
-        perl_statementlist_node *iter;
+        node_statementlist *stmt = to_statementlist_node(n);
+        node_statementlist *iter;
         for (iter = stmt; iter; iter = to_statementlist_node(iter->next)) {
           perl_node_dump(iter->statement, indent+1);
         }
@@ -1768,14 +1768,14 @@ perl_node_dump(node *n, int indent)
     case NODE_PACKAGE:
       {
         printf("package:\n");
-        perl_package_node *package = to_package_node(n);
+        node_package *package = to_package_node(n);
         perl_node_dump(package->name, indent+1);
       }
       break;
     case NODE_SUB:
       {
         printf("sub:\n");
-        perl_sub_node *sub = to_sub_node(n);
+        node_sub *sub = to_sub_node(n);
         perl_node_dump(sub->subname, indent+1);
         for (int j=0; j<indent+1; j++) {
           printf("  ");
@@ -1789,7 +1789,7 @@ perl_node_dump(node *n, int indent)
     case NODE_SASSIGN:
       printf("sassign:\n");
       {
-        perl_binop_node *binop = to_binop_node(n);
+        node_binop *binop = to_binop_node(n);
         perl_node_dump(binop->first, indent+1);
         perl_node_dump(binop->last, indent+1);
       }
@@ -1797,7 +1797,7 @@ perl_node_dump(node *n, int indent)
     case NODE_AASSIGN:
       printf("aassign:\n");
       {
-        perl_binop_node *binop = to_binop_node(n);
+        node_binop *binop = to_binop_node(n);
         perl_node_dump(binop->first, indent+1);
         perl_node_dump(binop->last, indent+1);
       }
@@ -1805,7 +1805,7 @@ perl_node_dump(node *n, int indent)
     case NODE_BLOCK:
       printf("block:\n");
       {
-        perl_block_node *block = to_block_node(n);
+        node_block *block = to_block_node(n);
         perl_lex_dump(block->variable, indent+1);
         perl_node_dump(block->statementlist, indent+1);
       }
@@ -1813,7 +1813,7 @@ perl_node_dump(node *n, int indent)
     case NODE_SCALARVAR:
       printf("scalar variable ");
       {
-        perl_variable_node *v = to_variable_node(n);
+        node_variable *v = to_variable_node(n);
         perl_scalar_dump(v->variable->name); 
         printf("\n");
       }
@@ -1821,7 +1821,7 @@ perl_node_dump(node *n, int indent)
     case NODE_ARRAYVAR:
       printf("array variable ");
       {
-        perl_variable_node *v = to_variable_node(n);
+        node_variable *v = to_variable_node(n);
         perl_scalar_dump(v->variable->name); 
         printf("\n");
       }
@@ -1829,7 +1829,7 @@ perl_node_dump(node *n, int indent)
     case NODE_HASHVAR:
       printf("hash varriable ");
       {
-        perl_variable_node *v = to_variable_node(n);
+        node_variable *v = to_variable_node(n);
         perl_scalar_dump(v->variable->name);
         printf("\n");
       }
@@ -1837,7 +1837,7 @@ perl_node_dump(node *n, int indent)
     case NODE_CONST:
       printf("const ");
       {
-        perl_const_node *v = to_const_node(n);
+        node_const *v = to_const_node(n);
         perl_scalar_dump(v->value);
         printf("\n");
       }
@@ -1845,15 +1845,15 @@ perl_node_dump(node *n, int indent)
     case NODE_NEGATE:
       printf("negate:\n");
       {
-        perl_unop_node *v = to_unop_node(n);
+        node_unop *v = to_unop_node(n);
         perl_node_dump(v->first, indent+1);
       }
       break;
     case NODE_LIST:
       printf("list\n");
       {
-        perl_list_node *l = to_list_node(n);
-        perl_list_node *iter;
+        node_list *l = to_list_node(n);
+        node_list *iter;
         for (iter = l; iter; iter = to_list_node(iter->next)) {
           perl_node_dump(iter->elem, indent+1);
         }
@@ -1862,21 +1862,21 @@ perl_node_dump(node *n, int indent)
     case NODE_ANONLIST:
       printf("anonlist\n");
       {
-        perl_unop_node *l = to_unop_node(n);
+        node_unop *l = to_unop_node(n);
         perl_node_dump(l->first, indent+1);
       }
       break;
     case NODE_ANONHASH:
       printf("anonhash\n");
       {
-        perl_unop_node *l = to_unop_node(n);
+        node_unop *l = to_unop_node(n);
         perl_node_dump(l->first, indent+1);
       }
       break;
     case NODE_USE:
       printf("use\n");
       {
-        perl_use_node *p = to_use_node(n);
+        node_use *p = to_use_node(n);
         perl_node_dump(p->id, indent+1);
         perl_node_dump(p->arg, indent+1);
       }
@@ -1884,7 +1884,7 @@ perl_node_dump(node *n, int indent)
     case NODE_AND:
       {
         printf("and\n");
-        perl_logical_node *m = to_logical_node(n);
+        node_logical *m = to_logical_node(n);
         perl_node_dump(m->first, indent+1);
         perl_node_dump(m->other, indent+1);
         perl_node_dump(m->next, indent+1);
@@ -1893,7 +1893,7 @@ perl_node_dump(node *n, int indent)
     case NODE_OR:
       {
         printf("or\n");
-        perl_logical_node *m = to_logical_node(n);
+        node_logical *m = to_logical_node(n);
         perl_node_dump(m->first, indent+1);
         perl_node_dump(m->other, indent+1);
         perl_node_dump(m->next, indent+1);
@@ -1902,7 +1902,7 @@ perl_node_dump(node *n, int indent)
     case NODE_FOR:
       {
         printf("for\n");
-        perl_for_node *m = to_for_node(n);
+        node_for *m = to_for_node(n);
         perl_node_dump(m->sv, indent+1);
         perl_node_dump(m->expr, indent+1);
         perl_node_dump(m->block, indent+1);
@@ -1912,7 +1912,7 @@ perl_node_dump(node *n, int indent)
     case NODE_AELEM:
       {
         printf("aelem\n");
-        perl_binop_node *m = to_binop_node(n);
+        node_binop *m = to_binop_node(n);
         perl_node_dump(m->first, indent+1);
         perl_node_dump(m->last, indent+1);
       }
@@ -1920,7 +1920,7 @@ perl_node_dump(node *n, int indent)
     case NODE_QWLIST:
       {
         printf("qwlist ");
-        perl_value_node *m = to_value_node(n);
+        node_value *m = to_value_node(n);
         perl_scalar_dump(m->value); 
         printf("\n");
       }
@@ -1928,7 +1928,7 @@ perl_node_dump(node *n, int indent)
     case NODE_METHOD_CALL:
       {
         printf("method_call\n");
-        perl_method_call_node *m = (perl_method_call_node *)n;
+        node_method_call *m = (node_method_call *)n;
         perl_node_dump(m->invocant, indent+1);
         perl_node_dump(m->name, indent+1);
         perl_node_dump(m->args, indent+1);
@@ -1937,7 +1937,7 @@ perl_node_dump(node *n, int indent)
     case NODE_CALL:
       {
         printf("call\n");
-        perl_call_node *m = (perl_call_node *)n;
+        node_call *m = (node_call *)n;
         perl_call_op_dump(n, indent+1);
         perl_node_dump(m->indirob, indent+1);
         perl_node_dump(m->name, indent+1);
@@ -1947,7 +1947,7 @@ perl_node_dump(node *n, int indent)
     case NODE_IF:
       {
         printf("if\n");
-        perl_logical_node *m = (perl_logical_node *)n;
+        node_logical *m = (node_logical *)n;
         perl_node_dump(m->first, indent+1);
         perl_node_dump(m->other, indent+1);
         perl_node_dump(m->next, indent+1);
@@ -1956,7 +1956,7 @@ perl_node_dump(node *n, int indent)
     case NODE_WHILE:
       {
         printf("while\n");
-        perl_loop_node *m = (perl_loop_node *)n;
+        node_loop *m = (node_loop *)n;
         perl_node_dump(m->cond, indent+1);
         perl_node_dump(m->block, indent+1);
       }
@@ -1964,7 +1964,7 @@ perl_node_dump(node *n, int indent)
     case NODE_STR:
       printf("str ");
       {
-        perl_value_node *v = to_value_node(n);
+        node_value *v = to_value_node(n);
         perl_scalar_dump(v->value);
         printf("\n");
       }
@@ -1972,7 +1972,7 @@ perl_node_dump(node *n, int indent)
     case NODE_NUMBER:
       printf("number ");
       {
-        perl_const_node *v = to_const_node(n);
+        node_const *v = to_const_node(n);
         perl_scalar_dump(v->value);
         printf("\n");
       }
@@ -1980,7 +1980,7 @@ perl_node_dump(node *n, int indent)
     case NODE_SYM:
       printf("sym ");
       {
-        perl_sym_node *v = to_sym_node(n);
+        node_sym *v = to_sym_node(n);
         perl_scalar_dump(v->sym);
         printf("\n");
       }
@@ -1988,7 +1988,7 @@ perl_node_dump(node *n, int indent)
     case NODE_EQ:
       printf("op_eq\n");
       {
-        perl_binop_node *v = to_binop_node(n);
+        node_binop *v = to_binop_node(n);
         perl_node_dump(v->first, indent+1);
         perl_node_dump(v->last, indent+1);
       }
@@ -1996,7 +1996,7 @@ perl_node_dump(node *n, int indent)
     case NODE_SEQ:
       printf("op_seq\n");
       {
-        perl_binop_node *v = to_binop_node(n);
+        node_binop *v = to_binop_node(n);
         perl_node_dump(v->first, indent+1);
         perl_node_dump(v->last, indent+1);
       }
@@ -2004,7 +2004,7 @@ perl_node_dump(node *n, int indent)
     case NODE_NE:
       printf("op_ne\n");
       {
-        perl_binop_node *v = to_binop_node(n);
+        node_binop *v = to_binop_node(n);
         perl_node_dump(v->first, indent+1);
         perl_node_dump(v->last, indent+1);
       }
@@ -2012,7 +2012,7 @@ perl_node_dump(node *n, int indent)
     case NODE_SNE:
       printf("op_sne\n");
       {
-        perl_binop_node *v = to_binop_node(n);
+        node_binop *v = to_binop_node(n);
         perl_node_dump(v->first, indent+1);
         perl_node_dump(v->last, indent+1);
       }
@@ -2217,22 +2217,22 @@ perl_add_our_name(perl_parser *p, perl_hash stash, perl_scalar n)
 }
 
 node *
-perl_new_sym(perl_parser *p, perl_scalar s)  
+node_sym_new(perl_parser *p, perl_scalar s)  
 {
-  perl_sym_node *n;
+  node_sym *n;
 
-  n = malloc(sizeof(perl_sym_node));
+  n = malloc(sizeof(node_sym));
   perl_init_node(p, &n->base, NODE_SYM, 0);
   n->sym = s;
   return (node *)n;
 }
 
 node *
-perl_new_const(perl_parser *p, perl_scalar value)  
+node_const_new(perl_parser *p, perl_scalar value)  
 {
-  perl_const_node *n;
+  node_const *n;
 
-  n = malloc(sizeof(perl_const_node));
+  n = malloc(sizeof(node_const));
   perl_init_node(p, &n->base, NODE_CONST, 0);
   n->value = value;
   return (node *)n;
@@ -2311,22 +2311,22 @@ scan_str(perl_parser *p, char *s, int term, int *val)
 #define isDIGIT(c)   (isascii(c) && isdigit(c))
 
 node *
-perl_new_variable_node(perl_parser *p, perl_variable *v)
+node_variable_new(perl_parser *p, perl_variable *v)
 {
-  perl_variable_node *n;
+  node_variable *n;
 
-  n = malloc(sizeof(perl_variable_node));
+  n = malloc(sizeof(node_variable));
   perl_init_node(p, &n->base, NODE_ANYVAR, 0);
   n->variable = v;
   return (node *)n;
 }
 
 node *
-perl_new_qwlist(perl_parser *p, perl_scalar v)
+node_qwlist_new(perl_parser *p, perl_scalar v)
 {
-  perl_value_node *n;
+  node_value *n;
 
-  n = malloc(sizeof(perl_value_node));
+  n = malloc(sizeof(node_value));
   perl_init_node(p, &n->base, NODE_QWLIST, 0);
   n->value = v;
   return (node *)n;
@@ -2503,7 +2503,7 @@ decimal:
         sv = perl_num_init(value);
       }
   }
-  perl_node *node = perl_new_const(p, sv);
+  perl_node *node = node_const_new(p, sv);
   yylval.opval = node;
   return s;
 }
@@ -2513,7 +2513,7 @@ perl_find_my_name(perl_parser *p, perl_scalar name)
 {
   int idx = 0;
   perl_variable *v, *prev;
-  perl_block_node *b;
+  node_block *b;
 
   for (b = to_block_node(p->curblock); b; b = to_block_node(b->outer)) {
     for (v = b->variable; v; prev = v, v = v->next) {
@@ -2550,7 +2550,7 @@ force_word(perl_parser *p, char *start, int token, int check_keyword, int allow_
       }
     }
     p->nexttoke->nexttokval[p->nexttoke->nexttoken].opval
-      = perl_new_sym(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
+      = node_sym_new(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
     force_next(p, token);
   }
   return s;
@@ -2591,7 +2591,7 @@ int
 perl_sublex_start(perl_parser *p, int type)
 {
   if (type == OP_CONST || type == OP_NULL) {
-    yylval.opval = perl_new_const(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
+    yylval.opval = node_const_new(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
     return THING;
   } else if (type == OP_STRINGIFY) {
     p->lex_state = LEX_INTERPPUSH;
@@ -2655,7 +2655,7 @@ perl_yylex(perl_parser *p)
         break;
       } else {
         p->lex_starts++;
-        yylval.opval = perl_new_const(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
+        yylval.opval = node_const_new(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
         return token(THING);
       }
     }
@@ -2673,7 +2673,7 @@ perl_yylex(perl_parser *p)
       s = scan_str(p, s, '"', &val);
       if (val == OP_CONST) {
         p->lex_starts++;
-        yylval.opval = perl_new_const(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
+        yylval.opval = node_const_new(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
         return token(THING);
       } else if (val == OP_STRINGIFY) {
         p->lex_starts++;
@@ -2687,7 +2687,7 @@ perl_yylex(perl_parser *p)
         } else {
           p->lex_state = LEX_INTERPEND;
           p->lex_starts = 0;
-          yylval.opval = perl_new_const(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
+          yylval.opval = node_const_new(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
           return token(THING);
         }
       }
@@ -2731,7 +2731,7 @@ retry:
     s++;
     if (takes_special_variable(p, s)) {
       save(p, *s);
-      yylval.opval = perl_new_const(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
+      yylval.opval = node_const_new(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
       s++;
       return token(WORD);
     }
@@ -2878,7 +2878,7 @@ retry:
       int val = OP_CONST;
       s++;
       s = scan_qstr(p, s, &val);
-      yylval.opval = perl_new_const(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
+      yylval.opval = node_const_new(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
       return token(THING);
     }
     break;
@@ -3107,7 +3107,7 @@ parse_word(perl_parser *p, char *s)
 
   if (*d == '=' && d[1] == '>') {
 fat_arrow:
-    yylval.opval = perl_new_const(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
+    yylval.opval = node_const_new(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
     return term(WORD);
   }
 
@@ -3157,10 +3157,10 @@ reserved_word:
       if (*s == '(') {
         if (p->saw_arrow) {
           p->saw_arrow = false;
-          yylval.opval = perl_new_const(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
+          yylval.opval = node_const_new(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
           return token(METHOD);
         } else {
-          NEXTVAL_NEXTTOKE.opval = perl_new_sym(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
+          NEXTVAL_NEXTTOKE.opval = node_sym_new(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
           force_next(p, WORD);
           return token('&');
         }
@@ -3168,15 +3168,15 @@ reserved_word:
         s = skipspace(p, s);
         if (find_our_name(p, p->tokenbuf, p->tokenlen)) {
           if (*s == '-' && s[1] == '>') {
-            yylval.opval = perl_new_sym(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
+            yylval.opval = node_sym_new(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
             return token(WORD);
           }
           p->nexttoke->nexttokval[p->nexttoke->nexttoken].opval
-            = perl_new_sym(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
+            = node_sym_new(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
           force_next(p, WORD);
           return token('&');
         } else {
-          yylval.opval = perl_new_sym(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
+          yylval.opval = node_sym_new(p, perl_str_new(p->state, p->tokenbuf, p->tokenlen));
           return token(WORD);
         }
       }
@@ -3323,14 +3323,14 @@ perl_pending_ident(perl_parser *p)
       }
       perl_add_our_name(p, p->curstash, name);
       tmp = perl_add_my_name(p, name);
-      yylval.opval = perl_new_variable_node(p, tmp);
+      yylval.opval = node_variable_new(p, tmp);
       return WORD;
     } else {
       if (has_colon) {
         perl_warner(p->state, "\"my\" variable %s can't be in a package", p->tokenbuf);
       }
       tmp = perl_add_my_name(p, name);
-      yylval.opval = perl_new_variable_node(p, tmp);
+      yylval.opval = node_variable_new(p, tmp);
       return PRIVATEREF;
     }
   }
@@ -3339,10 +3339,10 @@ perl_pending_ident(perl_parser *p)
     if (!p->in_my) {
       if ((tmp = perl_find_my_name(p, name)) != NULL) {
         if (tmp->scope == PERL_SCOPE_OUR) {
-          yylval.opval = perl_new_variable_node(p, tmp);
+          yylval.opval = node_variable_new(p, tmp);
           return WORD;
         }
-        yylval.opval = perl_new_variable_node(p, tmp);
+        yylval.opval = node_variable_new(p, tmp);
         return PRIVATEREF;
       }
     }
@@ -3352,7 +3352,7 @@ perl_pending_ident(perl_parser *p)
   }
   
   tmp = perl_add_my_name(p, name);
-  yylval.opval = perl_new_variable_node(p, tmp);
+  yylval.opval = node_variable_new(p, tmp);
   return WORD;
 }
 

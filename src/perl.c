@@ -9,11 +9,13 @@ perl_new(void)
   state->top = NULL;
   state->base = NULL;
   state->stack = NULL;
-  state->stack_last = NULL;
+  state->stack_end = NULL;
   state->ci = NULL; 
-  state->base_ci = NULL;
+  state->ci_base = NULL;
   state->options = 0;
   state->filename = NULL;
+  state->ci = NULL;
+  state->ci_end = NULL;
 
   return state;
 }
