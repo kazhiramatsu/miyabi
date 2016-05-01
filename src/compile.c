@@ -291,7 +291,7 @@ perl_code_dump(perl_state *state, perl_code code)
         printf("OP_GV\tR%d\tR%d\n", GETARG_A(inst), GETARG_B(inst));
         break;
       default:
-        printf("UNKNOWN OP = %d\n", GET_OPCODE(inst));
+        printf("Compiling UNKNOWN OP = %d\n", GET_OPCODE(inst));
         break;
     }
   }

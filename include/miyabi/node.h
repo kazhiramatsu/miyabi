@@ -125,8 +125,8 @@ typedef struct node_statementlist {
 
 typedef struct node_statement {
   perl_node base;
-  perl_scalar label;
-  perl_node *statement;
+  char *label;
+  perl_node *expr;
 } node_statement;
 
 typedef struct node_sub {
@@ -223,8 +223,8 @@ typedef struct keyword_s {
   _Bool is_core;
 } keyword;
 
-void node_program_new(perl_parser *p, node *n);
 node_statementlist *to_node_statementlist(node *n);
+node_statement *to_node_statement(node *n);
 node_list *to_node_list(perl_node *n);
 node_value *to_node_value(perl_node *n);
 node_variable *to_node_variable(perl_node *n);

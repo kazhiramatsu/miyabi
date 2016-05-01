@@ -89,7 +89,9 @@ struct perl_parser {
 
 node *node_new(perl_parser *p, enum perl_node_type type, uint32_t flags);
 void perl_init_node(perl_parser *p, node *base, enum perl_node_type type, int flags);
+void node_program_new(perl_parser *p, node *n);
 node *node_statementlist_new(perl_parser *p, node *statement);
+node *node_statement_new(perl_parser *p, char *label, node *expr);
 node *node_append_list(perl_parser *p, node *first, node *last);
 node *node_list_new(perl_parser *p, enum perl_node_type type, node *elem);
 node *node_prepend_elem(perl_parser *p, enum perl_node_type type, node *first, node *last);

@@ -177,8 +177,7 @@ int perl_yylex(perl_parser *p);
 %type <opval> formname subname proto subbody cont my_scalar
 %type <opval> subattrlist myattrlist subrout mysubrout myattrterm myterm
 %type <opval> termbinop termunop anonymous termdo
-//%type <pval> label
-%type <opval> label
+%type <pval> label
 
 %nonassoc PREC_LOW
 %nonassoc LOOPEX
@@ -254,12 +253,13 @@ lineseq :   /* NULL */
 
 /* A "line" in the program */
 line  :   label cond
-    { $$ = $2; }
+    { $$ = node_statement_new(p, $1, $2); }
     |   loop  /* loops add their own labels */
+    { $$ = node_statement_new(p, NULL, $1); p->expect = XSTATE; }
     |   label ';'
-    { $$ = $1; p->expect = XSTATE; }
+    { }
     |   label sideff ';'
-    { $$ = $2; p->expect = XSTATE; }
+    { $$ = node_statement_new(p, $1, $2); p->expect = XSTATE; }
     ;
 
 /* An expression which may have a side-effect */
@@ -1093,6 +1093,17 @@ node_statementlist_new(perl_parser *p, node *statement)
 }
 
 node *
+node_statement_new(perl_parser *p, char *label, node *expr)
+{
+  node_statement *n;
+
+  n = malloc(sizeof(node_statement));
+  perl_init_node(p, &n->base, NODE_STATEMENT, 0);
+  n->expr = expr;
+  return (node *)n;
+}
+
+node *
 node_append_list(perl_parser *p, node *first, node *last)
 {
   if (!first) {
@@ -1763,6 +1774,13 @@ perl_node_dump(node *n, int indent)
         for (iter = stmt; iter; iter = to_node_statementlist(iter->next)) {
           perl_node_dump(iter->statement, indent+1);
         }
+      }
+      break;
+    case NODE_STATEMENT:
+      {
+        printf("statement:\n");
+        node_statement *stmt = to_node_statement(n);
+        perl_node_dump(stmt->expr, indent+1);
       }
       break;
     case NODE_PACKAGE:

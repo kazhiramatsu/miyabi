@@ -6,6 +6,12 @@ to_node_statementlist(perl_node *n)
   return (node_statementlist *)n;
 }
 
+node_statement *
+to_node_statement(perl_node *n)
+{
+  return (node_statement *)n;
+}
+
 node_list *
 to_node_list(perl_node *n)
 {
