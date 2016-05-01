@@ -1,6 +1,4 @@
 #include "miyabi/perl.h"
-#include "miyabi/str.h"
-#include "miyabi/hash.h"
 
 perl_hash
 perl_hash_new(perl_state *state)

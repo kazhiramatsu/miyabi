@@ -158,6 +158,12 @@ compile(perl_compiler *c, compiler_unit *u, perl_node *n)
         }
       }
       break;
+    case NODE_STATEMENT:
+      {
+        node_statement *stmt = to_node_statement(n);
+        compile(c, u, stmt->expr);
+      }
+      break;
     case NODE_CALL:
       {
         node_call *call = to_node_call(n);
@@ -249,7 +255,9 @@ perl_compile(perl_state *state, perl_node *n)
 
   compile(c, NULL, n);
   
-  perl_code_dump(state, c->code);
+  if (state->options & PERL_OPTION_OPCODE) {
+    perl_code_dump(state, c->code);
+  }
   return c->code;
 }
 
@@ -280,6 +288,9 @@ perl_code_dump(perl_state *state, perl_code code)
         break;
       case OP_ENTER:
         printf("OP_ENTER\tR%d\tR%d\n", GETARG_A(inst), GETARG_B(inst));
+        break;
+      case OP_METHOD:
+        printf("OP_METHOD\tR%d\tR%d\n", GETARG_A(inst), GETARG_B(inst));
         break;
       case OP_CONST:
         printf("OP_CONST\tR%d\tCONSTS(%d)\n", GETARG_A(inst), GETARG_B(inst));

@@ -1,7 +1,4 @@
 #include "miyabi/perl.h"
-#include "miyabi/value.h"
-#include "miyabi/str.h"
-#include "miyabi/glob.h"
 
 perl_glob
 perl_glob_new(perl_state *state)

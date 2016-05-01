@@ -1,6 +1,4 @@
 #include "miyabi/perl.h"
-#include "miyabi/value.h"
-#include "miyabi/code.h"
 
 perl_code
 perl_code_new(perl_state *state)
@@ -12,6 +10,7 @@ perl_code_new(perl_state *state)
   code->size = 0;
   code->code = NULL;
   code->constants = perl_array_new(state);
+  code->cfunc = NULL;
 
   return perl_code_init(code);
 }

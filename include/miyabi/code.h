@@ -5,12 +5,15 @@
 #include "miyabi/value.h"
 #include "miyabi/array.h"
 
+typedef int (*perl_cfunc)(perl_state *state);
+
 struct perl_code {
   perl_object base;
   perl_instruction *code;
   int size;
   perl_array constants;
   _Bool is_imported;
+  perl_cfunc cfunc;
 };
 
 perl_code perl_code_new(perl_state *state);

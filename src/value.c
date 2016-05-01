@@ -1,6 +1,4 @@
 #include "miyabi/perl.h"
-#include "miyabi/value.h"
-#include <assert.h> 
 
 perl_scalar
 perl_num_init(double val)

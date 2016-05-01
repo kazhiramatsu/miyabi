@@ -1,6 +1,4 @@
 #include "miyabi/perl.h"
-#include "miyabi/str.h"
-#include "miyabi/array.h"
 
 perl_array
 perl_array_new(perl_state *state)

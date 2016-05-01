@@ -1,5 +1,4 @@
 #include "miyabi/perl.h"
-#include "miyabi/str.h"
 
 perl_scalar
 perl_str_new(perl_state *state, const char *s, int len)

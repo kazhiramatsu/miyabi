@@ -82,6 +82,13 @@ perl_run(perl_state *state, perl_code code)
           goto newframe;
         }
         break;
+      case OP_PRINT:
+        {
+          perl_precall(state, ra);
+          ci = state->ci;
+          goto newframe;
+        }
+        break;
       case OP_RETURN:
         {
           perl_postcall(state); 
