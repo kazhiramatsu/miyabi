@@ -8,7 +8,7 @@
 typedef struct perl_node node;
 
 enum perl_node_type {
-  NODE_PROGRAM,
+  NODE_COMP_UNIT,
   NODE_NUMBER,
   NODE_STATEMENTLIST,
   NODE_STATEMENT,
@@ -56,10 +56,10 @@ struct perl_node {
   size_t line;
 };
 
-typedef struct node_program {
+typedef struct node_comp_unit {
   perl_node base;
-  perl_node *program;
-} node_program;
+  perl_node *statementlist;
+} node_comp_unit;
 
 typedef struct node_if {
   perl_node base;
@@ -119,6 +119,7 @@ typedef struct node_uniop {
 typedef struct node_statementlist {
   perl_node base;
   perl_node *statement;
+  perl_node *statementlist;
   perl_node *next;
   perl_node *last;
 } node_statementlist;
@@ -127,6 +128,8 @@ typedef struct node_statement {
   perl_node base;
   char *label;
   perl_node *expr;
+  perl_node *next;
+  perl_node *last;
 } node_statement;
 
 typedef struct node_sub {
@@ -239,6 +242,6 @@ node_for *to_node_for(perl_node *n);
 node_use *to_node_use(perl_node *n);
 node_const *to_node_const(perl_node *n);
 node_sym *to_node_sym(perl_node *n);
-node_program *to_node_program(perl_node *n);
+node_comp_unit *to_node_comp_unit(perl_node *n);
 
 #endif

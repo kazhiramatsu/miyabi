@@ -140,11 +140,11 @@ compile(perl_compiler *c, compiler_unit *u, perl_node *n)
   switch (n->type) {
     default:
       break;
-    case NODE_PROGRAM:
+    case NODE_COMP_UNIT:
       {
-        node_program *program = to_node_program(n);
-        u = compiler_unit_new(c, NULL, program->program);
-        compile(c, u, program->program);
+        node_comp_unit *comp_unit = to_node_comp_unit(n);
+        u = compiler_unit_new(c, NULL, comp_unit->statementlist);
+        compile(c, u, comp_unit->statementlist);
         perl_code code = compiler_unit_finish(c, u);
         c->code = code;
       }

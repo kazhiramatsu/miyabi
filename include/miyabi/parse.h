@@ -49,8 +49,7 @@ struct perl_parser {
   int lex_brackets;
   int lex_fakebrack;
   int expect;
-  int current;
-  node *program;
+  node *comp_unit;
   
   int pending_ident;
   node *curblock;
@@ -89,10 +88,10 @@ struct perl_parser {
 
 node *node_new(perl_parser *p, enum perl_node_type type, uint32_t flags);
 void perl_init_node(perl_parser *p, node *base, enum perl_node_type type, int flags);
-void node_program_new(perl_parser *p, node *n);
-node *node_statementlist_new(perl_parser *p, node *statement);
+void node_comp_unit_new(perl_parser *p, node *n);
+node *node_append_statement(perl_parser *p, node *first, node *last);
+node *node_statementlist_new(perl_parser *p, node *statementlist);
 node *node_statement_new(perl_parser *p, char *label, node *expr);
-node *node_append_list(perl_parser *p, node *first, node *last);
 node *node_list_new(perl_parser *p, enum perl_node_type type, node *elem);
 node *node_prepend_elem(perl_parser *p, enum perl_node_type type, node *first, node *last);
 node *node_append_elem(perl_parser *p, enum perl_node_type type, node *first, node *last);

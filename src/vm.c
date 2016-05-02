@@ -19,11 +19,12 @@ ci_new(perl_state *state)
   return state->ci++;
 }
 
-void
+int
 perl_precall(perl_state *state, perl_code *code)
 {
   perl_callinfo *ci;
   perl_scalar *base;
+  struct perl_code *c = perl_to_code(code);
   size_t n;
 
   n = (size_t)(state->top - code) - 1;  /* number of real arguments */
@@ -37,7 +38,11 @@ perl_precall(perl_state *state, perl_code *code)
   //ci->top = base + code->maxregs;
   ci->u.p.savedpc = perl_to_code(*code)->code;  /* starting point */
   state->top = ci->top;
-  return;
+  if (c->cfunc) {
+    n = (*c->cfunc)(state);
+    return 1;
+  }
+  return 0;
 }
 
 void
@@ -66,7 +71,8 @@ perl_run(perl_state *state, perl_code code)
   perl_scalar *target = state->top;
   state->top++;
   perl_precall(state, target);
-  ci = state->ci; 
+  ci = state->ci;
+
  newframe:  /* reentry point when frame changes (call/return) */
   base = ci->u.p.base;
   for (;;) {
@@ -77,16 +83,22 @@ perl_run(perl_state *state, perl_code code)
         break;
       case OP_ENTERSUB:
         {
-          perl_precall(state, ra);
-          ci = state->ci;
-          goto newframe;
+          // if (perl_precall(state, ra)) {
+          //   base = ci->u.p.base;
+          // } else {
+          //   ci = state->ci;
+          //   goto newframe;
+          // }
         }
         break;
       case OP_PRINT:
         {
-          perl_precall(state, ra);
-          ci = state->ci;
-          goto newframe;
+          if (perl_precall(state, ra)) {
+            base = ci->u.p.base;
+          } else {
+            ci = state->ci;
+            goto newframe;
+          }
         }
         break;
       case OP_RETURN:

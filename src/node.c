@@ -96,9 +96,9 @@ to_node_sym(perl_node *n)
   return (node_sym *)n;
 }
 
-node_program *
-to_node_program(perl_node *n)
+node_comp_unit *
+to_node_comp_unit(perl_node *n)
 {
-  return (node_program *)n;
+  return (node_comp_unit *)n;
 }
 

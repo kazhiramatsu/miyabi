@@ -8,7 +8,7 @@
 #include "miyabi/callinfo.h"
 
 void perl_run(perl_state *state, perl_code code);
-void perl_precall(perl_state *state, perl_code *code);
+int perl_precall(perl_state *state, perl_code *code);
 void perl_postcall(perl_state *state);
 
 #endif

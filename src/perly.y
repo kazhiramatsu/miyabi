@@ -1,18 +1,9 @@
 %{
 
 #include "miyabi/perl.h"
-#include "miyabi/value.h"
-#include "miyabi/str.h"
-#include "miyabi/array.h"
-#include "miyabi/code.h"
-#include "miyabi/hash.h"
-#include "miyabi/opcode.h"
 #include "miyabi/parse.h"
 #include "miyabi/node.h"
 #include "miyabi/keywords.h"
-#include "miyabi/node.h"
-#include <stdarg.h>
-#include <assert.h>
 
 #define YYDEBUG 1
 #define YYERROR_VERBOSE 1
@@ -214,13 +205,13 @@ int perl_yylex(perl_parser *p);
 /* The whole program */
 prog  :   progstart
     /*CONTINUED*/ lineseq
-    { node_program_new(p, node_block_end(p, $1, $2)); }
+    { node_comp_unit_new(p, node_statementlist_new(p, $2)); }
             /* { $$ = $1; newPROG(block_end($1,$2)); } */
     ;
 
 /* An ordinary block */
 block :   '{' remember lineseq '}'
-    { $$ = node_block_end(p, $2, $3); }
+    { $$ = node_block_end(p, $2, node_statementlist_new(p, $3)); }
     ;
 
 remember:   /* NULL */    /* start a full lexical scope */
@@ -235,7 +226,7 @@ progstart:
     ;
 
 mblock  :   '{' mremember lineseq '}'
-    { $$ = node_block_end(p, $2, $3); }
+    { $$ = node_block_end(p, $2, node_statementlist_new(p, $3)); }
     ;
 
 mremember:    /* NULL */    /* start a partial lexical scope */
@@ -246,9 +237,9 @@ mremember:    /* NULL */    /* start a partial lexical scope */
 lineseq :   /* NULL */
     { $$ = NULL; }
     |   lineseq decl
-    { $$ = node_append_list(p, $1, $2); }
+    { $$ = node_append_statement(p, $1, $2); }
     |   lineseq line
-    { $$ = node_append_list(p, $1, $2); }
+    { $$ = node_append_statement(p, $1, $2); }
     ;
 
 /* A "line" in the program */
@@ -1088,7 +1079,6 @@ node_statementlist_new(perl_parser *p, node *statement)
   n = malloc(sizeof(node_statementlist));
   perl_init_node(p, &n->base, NODE_STATEMENTLIST, 0);
   n->statement = statement;
-  n->next = NULL;
   return (node *)n;
 }
 
@@ -1100,7 +1090,24 @@ node_statement_new(perl_parser *p, char *label, node *expr)
   n = malloc(sizeof(node_statement));
   perl_init_node(p, &n->base, NODE_STATEMENT, 0);
   n->expr = expr;
+  n->last = NULL;
+  n->next = NULL;
   return (node *)n;
+}
+
+node *
+node_append_statement(perl_parser *p, node *first, node *last)
+{
+  if (!first) {
+    return last;
+  }
+  if (!last) {
+    return first;
+  }
+  node_statement *n = to_node_statement(first);
+  n->next = last;
+  n->last = last;
+  return first;
 }
 
 node *
@@ -1650,15 +1657,15 @@ perl_add_my_name(perl_parser *p, perl_scalar name)
 }
 
 void
-node_program_new(perl_parser *p, node *n)
+node_comp_unit_new(perl_parser *p, node *n)
 {
-  node_program *prog;
+  node_comp_unit *comp_unit;
 
-  prog = malloc(sizeof(node_program)); 
-  prog->base.type = NODE_PROGRAM;
-  prog->program = n;
+  comp_unit = malloc(sizeof(node_comp_unit)); 
+  comp_unit->base.type = NODE_COMP_UNIT;
+  comp_unit->statementlist = n;
 
-  p->program = (node *)prog;
+  p->comp_unit = (node *)comp_unit;
 }
 
 token_t *
@@ -1759,20 +1766,20 @@ perl_node_dump(node *n, int indent)
     default:
       printf("other node type = %d\n", n->type);
       break;
-    case NODE_PROGRAM:
-      printf("program:\n");
+    case NODE_COMP_UNIT:
+      printf("comp_unit:\n");
       {
-        node_program *prog = to_node_program(n);
-        perl_node_dump(prog->program, indent+1);
+        node_comp_unit *comp_unit = to_node_comp_unit(n);
+        perl_node_dump(comp_unit->statementlist, indent+1);
       }
       break;
     case NODE_STATEMENTLIST:
       {
         printf("statementlist:\n");
         node_statementlist *stmt = to_node_statementlist(n);
-        node_statementlist *iter;
-        for (iter = stmt; iter; iter = to_node_statementlist(iter->next)) {
-          perl_node_dump(iter->statement, indent+1);
+        node_statement *iter;
+        for (iter = (node_statement *)stmt->statement; iter; iter = (node_statement *)iter->next) {
+          perl_node_dump((node *)iter, indent+1);
         }
       }
       break;
@@ -2076,9 +2083,9 @@ perl_parse_file(perl_state *state, char *file)
 
   if (p->state->options & PERL_OPTION_VERBOSE) {
     perl_token_dump(p);
-    perl_node_dump(p->program, 1);
+    perl_node_dump(p->comp_unit, 1);
   } else if (p->state->options & PERL_OPTION_AST) {
-    perl_node_dump(p->program, 1);
+    perl_node_dump(p->comp_unit, 1);
   }
   state->defstash = p->defstash;
   return p;
@@ -2095,7 +2102,6 @@ perl_parser_new(perl_state *state)
   p->column = 0;
   p->file = NULL;
   p->state = state;
-  p->current = -1;
   p->pending_ident = 0;
   p->in_my = 0;
   p->lex_brackets = 0;
