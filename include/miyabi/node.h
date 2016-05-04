@@ -17,7 +17,7 @@ enum perl_node_type {
   NODE_STR,
   NODE_ANYVAR,
   NODE_CONST,
-  NODE_SYM,
+  NODE_IDENTIFIER,
   NODE_SCALARVAR,
   NODE_ARRAYVAR,
   NODE_HASHVAR,
@@ -56,9 +56,24 @@ struct perl_node {
   size_t line;
 };
 
+enum perl_scope {
+  PERL_SCOPE_OUR,
+  PERL_SCOPE_MY,
+};
+
+typedef struct perl_variable {
+  perl_scalar name;
+  enum perl_scope scope;
+  int idx;
+  char *file;
+  int line;
+  struct perl_variable *next;
+} perl_variable;
+
 typedef struct node_comp_unit {
   perl_node base;
   perl_node *statementlist;
+  perl_variable *variable;
 } node_comp_unit;
 
 typedef struct node_if {
@@ -156,20 +171,6 @@ typedef struct node_call {
   perl_node *args;
 } node_call;
 
-enum perl_scope {
-  PERL_SCOPE_OUR,
-  PERL_SCOPE_MY,
-};
-
-typedef struct perl_variable {
-  perl_scalar name;
-  enum perl_scope scope;
-  int idx;
-  char *file;
-  int line;
-  struct perl_variable *next;
-} perl_variable;
-
 typedef struct perl_const {
   perl_scalar value;
   int idx;
@@ -210,10 +211,10 @@ typedef struct node_loop {
   perl_node *block;
 } node_loop;
 
-typedef struct node_sym {
+typedef struct node_identifier {
   perl_node base;
-  perl_scalar sym;
-} node_sym;
+  perl_scalar ident;
+} node_identifier;
 
 typedef struct node_const {
   perl_node base;
@@ -225,23 +226,5 @@ typedef struct keyword_s {
   int key_id;
   _Bool is_core;
 } keyword;
-
-node_statementlist *to_node_statementlist(node *n);
-node_statement *to_node_statement(node *n);
-node_list *to_node_list(perl_node *n);
-node_value *to_node_value(perl_node *n);
-node_variable *to_node_variable(perl_node *n);
-node_call *to_node_call(perl_node *n);
-node_package *to_node_package(perl_node *n);
-node_sub *to_node_sub(perl_node *n);
-node_binop *to_node_binop(perl_node *n);
-node_block *to_node_block(perl_node *n);
-node_unop *to_node_unop(perl_node *n);
-node_logical *to_node_logical(perl_node *n);
-node_for *to_node_for(perl_node *n);
-node_use *to_node_use(perl_node *n);
-node_const *to_node_const(perl_node *n);
-node_sym *to_node_sym(perl_node *n);
-node_comp_unit *to_node_comp_unit(perl_node *n);
 
 #endif

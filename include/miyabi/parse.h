@@ -135,7 +135,7 @@ void perl_node_dump(node *n, int indent);
 perl_parser *perl_parse_file(perl_state *state, char *file);
 perl_parser *perl_parser_new(perl_state *state);
 perl_scalar perl_add_our_name(perl_parser *p, perl_hash stash, perl_scalar n);
-node *node_sym_new(perl_parser *p, perl_scalar s);
+node *node_identifier_new(perl_parser *p, perl_scalar s);
 node *node_const_new(perl_parser *p, perl_value value);
 node *node_variable_new(perl_parser *p, perl_variable *v);
 node *node_qwlist_new(perl_parser *p, perl_scalar v);

@@ -8,7 +8,7 @@
 #include "miyabi/parse.h"
 #include "miyabi/code.h"
 
-typedef struct compiler_unit compiler_unit;
+typedef struct compiler_context compiler_context;
 
 typedef struct perl_compiler {
   perl_scalar curstashname;

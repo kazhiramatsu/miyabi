@@ -1,7 +1,7 @@
 #include "miyabi/compile.h"
 
-struct compiler_unit {
-  compiler_unit *prev;
+struct compiler_context {
+  compiler_context *prev;
   perl_instruction *code;
   int fill;
   int max;
@@ -13,36 +13,36 @@ struct compiler_unit {
 
 static
 int
-reserve_reg(perl_node *n)
+reserve_reg(perl_variable *n)
 {
   int size = 0;
   perl_variable *v = NULL;
 
   if (!n) return size;
 
-  for (v = to_node_block(n)->variable; v; v = v->next) size++;
+  for (v = n; v; v = v->next) size++;
   return size;
 }
 
-static compiler_unit *
-compiler_unit_new(perl_compiler *c, compiler_unit *prev, perl_node *n)
+static compiler_context *
+compiler_context_new(perl_compiler *c, compiler_context *prev, int reg)
 {
-  compiler_unit *u;
+  compiler_context *u;
 
-  u = malloc(sizeof(compiler_unit));
+  u = malloc(sizeof(compiler_context));
   u->prev = prev;
   u->code = malloc(sizeof(perl_instruction)*256);
   u->fill = 0;
   u->max = 256;
   u->consts = perl_array_new(c->state);
-  u->reg = reserve_reg(n);
+  u->reg = reg;
   u->comp_stash = c->curstash;
 
   return u;
 }
 
 static perl_code
-build_code(perl_compiler *c, compiler_unit *u)
+build_code(perl_compiler *c, compiler_context *u)
 {
   perl_code code;
 
@@ -55,14 +55,14 @@ build_code(perl_compiler *c, compiler_unit *u)
 }
 
 static perl_code
-compiler_unit_finish(perl_compiler *c, compiler_unit *u)
+compiler_context_finish(perl_compiler *c, compiler_context *u)
 {
   perl_code code = build_code(c, u);
   return code;
 }
 
 void
-peep(perl_compiler *c, compiler_unit *u, perl_instruction cur, int reg)
+peep(perl_compiler *c, compiler_context *u, perl_instruction cur, int reg)
 {
   int curop = GET_OPCODE(cur);
   perl_instruction prev = u->code[u->fill-1];
@@ -84,9 +84,9 @@ peep(perl_compiler *c, compiler_unit *u, perl_instruction cur, int reg)
 }
 
 int
-add_const(perl_compiler *c, compiler_unit *u, perl_node *n)
+add_const(perl_compiler *c, compiler_context *u, perl_node *n)
 {
-  node_const *k = to_node_const(n);
+  node_const *k = (node_const *)n;
 
   int idx = perl_array_length(c->state, u->consts);
   perl_array_push(c->state, u->consts, k->value);
@@ -94,7 +94,7 @@ add_const(perl_compiler *c, compiler_unit *u, perl_node *n)
 }
 
 void
-emit(compiler_unit *u, perl_instruction i)
+emit(compiler_context *u, perl_instruction i)
 {
   if (u->fill == u->max) {
     u->max *= 2;
@@ -104,12 +104,12 @@ emit(compiler_unit *u, perl_instruction i)
 }
 
 void
-compile_sassign(perl_compiler *c, compiler_unit *u, perl_node *first, int reg)
+compile_sassign(perl_compiler *c, compiler_context *u, perl_node *first, int reg)
 {
   switch (first->type) {
     case NODE_SCALARVAR:
       {
-        node_variable *left = to_node_variable(first);
+        node_variable *left = (node_variable *)first;
           peep(c, u, CREATE_ABC(OP_SASSIGN, left->variable->idx, reg, 0), reg);
           //emit(c->u, CREATE_ABC(OP_SASSIGN, left->variable->idx, reg, 0));
       }
@@ -120,53 +120,53 @@ compile_sassign(perl_compiler *c, compiler_unit *u, perl_node *first, int reg)
 }
 
 int
-add_symbol(perl_compiler *c, compiler_unit *u, perl_node *n)
+add_symbol(perl_compiler *c, compiler_context *u, perl_node *n)
 {
-  node_sym *k = to_node_sym(n);
+  node_identifier *k = (node_identifier *)n;
 
   int idx = perl_array_length(c->state, u->syms);
-  perl_array_push(c->state, u->syms, k->sym);
+  perl_array_push(c->state, u->syms, k->ident);
   return idx;
 }
 
 static
 void
-compile(perl_compiler *c, compiler_unit *u, perl_node *n)
+compile(perl_compiler *c, compiler_context *u, perl_node *n)
 {
   if (!n) return;
 
-  compiler_unit *prev = u;
+  compiler_context *prev = u;
 
   switch (n->type) {
     default:
       break;
     case NODE_COMP_UNIT:
       {
-        node_comp_unit *comp_unit = to_node_comp_unit(n);
-        u = compiler_unit_new(c, NULL, comp_unit->statementlist);
+        node_comp_unit *comp_unit = (node_comp_unit *)n;
+        u = compiler_context_new(c, NULL, reserve_reg(comp_unit->variable));
         compile(c, u, comp_unit->statementlist);
-        perl_code code = compiler_unit_finish(c, u);
+        perl_code code = compiler_context_finish(c, u);
         c->code = code;
       }
       break;
     case NODE_STATEMENTLIST:
       {
-        node_statementlist *stmt = to_node_statementlist(n);
-        node_statementlist *iter;
-        for (iter = stmt; iter; iter = to_node_statementlist(iter->next)) {
-          compile(c, u, iter->statement);
+        node_statementlist *stmt = (node_statementlist *)n;
+        node_statement *iter;
+        for (iter = (node_statement *)stmt->statement; iter; iter = (node_statement *)iter->next) {
+          compile(c, u, (perl_node *)iter);
         }
       }
       break;
     case NODE_STATEMENT:
       {
-        node_statement *stmt = to_node_statement(n);
+        node_statement *stmt = (node_statement *)n;
         compile(c, u, stmt->expr);
       }
       break;
     case NODE_CALL:
       {
-        node_call *call = to_node_call(n);
+        node_call *call = (node_call *)n;
         compile(c, u, call->args);
         compile(c, u, call->name);
         emit(u, CREATE_ABC(OP_ENTERSUB, u->reg, 0, 0));
@@ -174,8 +174,8 @@ compile(perl_compiler *c, compiler_unit *u, perl_node *n)
       break;
     case NODE_PACKAGE:
       {
-        node_package *package = to_node_package(n);
-        perl_scalar *stash = perl_hash_fetch(c->state, c->defstash, perl_str_cat_cstr(c->state, perl_str_copy(c->state, to_node_sym(package->name)->sym), "::", 2), perl_undef_new(), false);
+        node_package *package = (node_package *)n;
+        perl_scalar *stash = perl_hash_fetch(c->state, c->defstash, perl_str_cat_cstr(c->state, perl_str_copy(c->state, ((node_identifier *)(package->name))->ident), "::", 2), perl_undef_new(), false);
         if (stash != NULL) {
           c->curstash = *stash;
         }
@@ -183,15 +183,15 @@ compile(perl_compiler *c, compiler_unit *u, perl_node *n)
       break;
     case NODE_SUB:
       {
-        node_sub *sub = to_node_sub(n);
-        u = compiler_unit_new(c, u, sub->subbody);
+        node_sub *sub = (node_sub *)n;
+        u = compiler_context_new(c, u, reserve_reg(((node_block *)(sub->subbody))->variable));
         compile(c, u, sub->subbody);
-        perl_code code = compiler_unit_finish(c, u);
+        perl_code code = compiler_context_finish(c, u);
       }
       break;
     case NODE_SASSIGN:
       {
-        node_binop *binop = to_node_binop(n);
+        node_binop *binop = (node_binop *)n;
         compile(c, u, binop->last);
         u->reg--;
         compile_sassign(c, u, binop->first, u->reg);
@@ -204,12 +204,12 @@ compile(perl_compiler *c, compiler_unit *u, perl_node *n)
       break;
     case NODE_BLOCK:
       {
-        compile(c, u, to_node_block(n)->statementlist);
+        compile(c, u, ((node_block *)(n))->statementlist);
       }
       break;
     case NODE_SCALARVAR:
       {
-        node_variable *v = to_node_variable(n);
+        node_variable *v = (node_variable *)n;
         emit(u, CREATE_ABC(OP_SASSIGN, u->reg, v->variable->idx, 0));
         u->reg++;
       }
@@ -230,9 +230,9 @@ compile(perl_compiler *c, compiler_unit *u, perl_node *n)
         emit(u, CREATE_ABC(OP_METHOD, 0, 0, 0));
       }
       break;
-    case NODE_SYM:
+    case NODE_IDENTIFIER:
       {
-      	node_sym *sym = (node_sym *)n;
+      	node_identifier *ident = (node_identifier *)n;
 
         emit(u, CREATE_ABC(OP_SASSIGN, u->reg, 0, 0));
 				u->reg++;
