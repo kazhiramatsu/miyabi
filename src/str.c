@@ -10,7 +10,7 @@ perl_str_new(perl_state *state, const char *s, int len)
   buf[len] = '\0';
 
   str = malloc(sizeof(struct perl_str));
-  str->base.header.type = PERL_TYPE_STR;
+  str->base.type = PERL_TYPE_STR;
   str->str = buf;
   str->fill = len;
   str->max = len+1;

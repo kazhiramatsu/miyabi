@@ -17,5 +17,6 @@ struct perl_glob {
 perl_glob perl_glob_new(perl_state *state); 
 perl_glob perl_glob_code_add(perl_code code);
 perl_glob perl_glob_hash_add(perl_hash hash);
+perl_glob perl_glob_fetch(perl_state *state, perl_scalar name);
 
 #endif

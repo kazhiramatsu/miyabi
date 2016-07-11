@@ -47,22 +47,15 @@ typedef uint64_t perl_undef;
 typedef uint64_t perl_glob;
 typedef uint64_t perl_code;
 
-typedef struct perl_object_header perl_object_header;
-
-struct perl_object_header {
-  unsigned int type:8;
-  unsigned int zone:2;
-  unsigned int age:4;
-  unsigned int forwarded:1;
-  unsigned int remembered:1;
-  unsigned int marked:2;
-  unsigned int require_cleanup:1;
-  unsigned int refs_are_weak:1;
-  perl_object_header *next;
+enum perl_gc_tag {
+  PERL_GC_COPIED
 };
 
 typedef struct perl_object {
-  perl_object_header header;
+  enum perl_type type;
+  size_t size;
+  enum perl_gc_tag tag;
+  struct perl_object *next;
 } perl_object;
 
 typedef struct perl_node perl_node;

@@ -24,7 +24,7 @@ perl_precall(perl_state *state, perl_code *code)
 {
   perl_callinfo *ci;
   perl_scalar *base;
-  struct perl_code *c = perl_to_code(code);
+  struct perl_code *c = perl_to_code(*code);
   size_t n;
 
   n = (size_t)(state->top - code) - 1;  /* number of real arguments */

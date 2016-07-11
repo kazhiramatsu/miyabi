@@ -4,6 +4,8 @@
 #include "miyabi/compile.h"
 #include "miyabi/vm.h"
 
+char *a = "KUSAKABE_IS_A_GREAT_HACKER";
+
 int
 main(int argc, char **argv)
 {
@@ -14,7 +16,7 @@ main(int argc, char **argv)
 
   perl_parse_options(state, argc, argv);
   p = perl_parse_file(state, state->filename);
-  perl_code code = perl_compile(state, p->comp_unit);
+  struct perl_code *code = perl_compile(state, p->comp_unit);
 
 //  perl_run(state, code);
 

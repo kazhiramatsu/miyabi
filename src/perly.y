@@ -1746,7 +1746,7 @@ perl_call_op_dump(node *n, int indent)
       for (j=0; j<indent; j++) {
         printf("  ");
       }
-      printf("%s\n", builtins[i].key_name);
+      printf("identifier %s\n", builtins[i].key_name);
     }
   }
   return 1;
@@ -2184,6 +2184,7 @@ fix(perl_parser *p)
   p->tokenbuf[p->tokenlen] = '\0';
 }
 
+
 perl_array
 perl_canonicalize_name(perl_parser *p, perl_scalar str)
 {
@@ -2196,6 +2197,10 @@ perl_canonicalize_name(perl_parser *p, perl_scalar str)
 
   start = perl_to_str(str)->str;
 
+  /**
+   * A::B::C  => (A::, A::B::, A::B::C::)
+   * B => (B::)
+   */
   while ((pos = strstr(start, "::")) != NULL) {
     pos += 2; /* skip "::" */
     len = pos - start;
@@ -2211,6 +2216,7 @@ perl_canonicalize_name(perl_parser *p, perl_scalar str)
   }
   return components;
 }
+
 
 perl_value
 find_top_pkg(perl_parser *p, perl_scalar name)
@@ -2239,6 +2245,38 @@ perl_add_our_name(perl_parser *p, perl_hash stash, perl_scalar n)
 
   return perl_undef_new();
 }
+
+// perl_hash
+// perl_add_our_name(perl_state *state, perl_hash curpkg, perl_scalar n)
+// {
+//   perl_array components;
+//   perl_hash *newstash;
+//   perl_scalar name;
+//   perl_hash curstash = curpkg;
+//   perl_scalar *old;
+//   perl_scalar pkgname;
+// 
+//   components = perl_canonicalize_name(state, n);
+// 
+//   while (perl_array_length(state, components) > 1) {
+//     pkgname = perl_array_shift(state, components); 
+//     newstash = perl_hash_fetch(state, curstash, pkgname, perl_undef_new(), false);
+//     if (newstash == NULL) {
+//       *newstash = perl_hash_new(state);
+//       curstash = *newstash;
+//       curpkg = curstash;
+//     }
+//   }
+// 
+//   name = perl_array_shift(state, components); 
+//   old = perl_hash_fetch(state, curstash, name, perl_undef_new(), false);
+//   if (old == NULL) {
+//       *old = perl_hash_new(state);
+//       curstash = *old;
+//   }
+//   return curstash;
+// }
+//
 
 node *
 node_identifier_new(perl_parser *p, perl_scalar s)  

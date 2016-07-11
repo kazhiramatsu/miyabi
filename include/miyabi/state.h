@@ -2,6 +2,7 @@
 #define PERL_STATE_H
 
 #include "miyabi/value.h"
+#include "miyabi/gc.h"
 
 typedef struct perl_state {
   perl_scalar *top;
@@ -21,6 +22,8 @@ typedef struct perl_state {
   perl_hash defstash;
  	perl_hash curstash;
 	perl_scalar curstashname;
+  perl_heap *heap;
+  perl_object *gc_roots;
 } perl_state;
 
 #endif

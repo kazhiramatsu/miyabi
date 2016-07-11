@@ -7,7 +7,7 @@ perl_array_new(perl_state *state)
   int i;
 
   array = malloc(sizeof(struct perl_array));
-  array->base.header.type = PERL_TYPE_ARRAY;
+  array->base.type = PERL_TYPE_ARRAY;
   array->fill = 0;
   array->max = 256;
   array->head = 0;

@@ -7,7 +7,7 @@ perl_hash_new(perl_state *state)
   int i;
 
   table = malloc(sizeof(struct perl_hash));
-  table->base.header.type = PERL_TYPE_HASH;
+  table->base.type = PERL_TYPE_HASH;
   table->keys = 0;
   table->fill = 0;
   table->max = 256;
