@@ -5,7 +5,7 @@
 #include "miyabi/value.h"
 
 typedef struct perl_str {
-  perl_object base;
+  perl_object_header
   int hash;
   char *str;
   ssize_t fill;

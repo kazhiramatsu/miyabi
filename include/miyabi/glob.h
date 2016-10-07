@@ -6,7 +6,7 @@
 #include "miyabi/code.h"
 
 struct perl_glob {
-  perl_object base;
+  perl_object_header
 	perl_scalar scalar;
   perl_code code;		      /* subroutine value */
   perl_hash hash;		      /* hash value */

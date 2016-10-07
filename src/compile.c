@@ -47,7 +47,7 @@ perl_compiler_new(perl_state *state, perl_compiler *prev, node *n)
   c->constants = perl_array_new(state);
   c->reg = reserved_reg(((node_block *)n)->variable);
   c->code = malloc(sizeof(struct perl_code));
-  c->code->base.type = PERL_TYPE_CODE;
+  c->code->tag = PERL_TAG_CODE;
   c->code->size = 0;
   c->code->code = NULL;
   c->code->constants = perl_array_new(state);

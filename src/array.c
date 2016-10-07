@@ -7,7 +7,7 @@ perl_array_new(perl_state *state)
   int i;
 
   array = malloc(sizeof(struct perl_array));
-  array->base.type = PERL_TYPE_ARRAY;
+  array->tag = PERL_TAG_ARRAY;
   array->fill = 0;
   array->max = 256;
   array->head = 0;
@@ -16,7 +16,7 @@ perl_array_new(perl_state *state)
   for (i = 0; i < array->max; i++) {
     array->array[i] = perl_undef_new();
   }
-  return perl_array_init(array);
+  return perl_array_make(array);
 }
 
 perl_scalar 
@@ -24,7 +24,7 @@ perl_array_shift(perl_state *state, perl_array ary)
 {
   perl_scalar result;
   int new_max = 0;
-  struct perl_array *array = perl_to_array(ary);
+  struct perl_array *array = perl_array_value(ary);
   int target = array->head;
 
   if (array->fill == 0) {
@@ -40,7 +40,7 @@ perl_scalar
 perl_array_pop(perl_state *state, perl_array ary)
 {
   perl_scalar result;
-  struct perl_array *array = perl_to_array(ary);
+  struct perl_array *array = perl_array_value(ary);
   int target = array->head + array->fill - 1;
 
   if (array->fill == 0) {
@@ -54,13 +54,13 @@ perl_array_pop(perl_state *state, perl_array ary)
 perl_scalar *
 perl_array_fetch(perl_state *state, perl_array ary, int key, perl_scalar val, _Bool add)
 {
-  struct perl_array *array = perl_to_array(ary);
+  struct perl_array *array = perl_array_value(ary);
 
   if ((key >= array->max) || (key < 0)) {
     return NULL;
   }
 
-  if (perl_type(array->array[key]) == PERL_TYPE_UNDEF && add) {
+  if (perl_type(array->array[key]) == PERL_TAG_UNDEF && add) {
     array->array[key] = val;
   }
   return &array->array[key];
@@ -70,7 +70,7 @@ void
 perl_array_push(perl_state *state, perl_array ary, perl_scalar value)
 {
   int new_max = 0;
-  struct perl_array *array = perl_to_array(ary);
+  struct perl_array *array = perl_array_value(ary);
   int target = array->head + array->fill;
 
   if (target >= array->max) {
@@ -89,7 +89,7 @@ perl_scalar *
 perl_array_store(perl_state *state, perl_array ary, int key, perl_scalar value)
 {
   int new_max = 0;
-  struct perl_array *array = perl_to_array(ary);
+  struct perl_array *array = perl_array_value(ary);
 
   if (key >= array->max) {
     new_max = array->max * 2;
@@ -107,7 +107,7 @@ perl_array_store(perl_state *state, perl_array ary, int key, perl_scalar value)
 int
 perl_array_length(perl_state *state, perl_array ary)
 {
-  struct perl_array *array = perl_to_array(ary);
+  struct perl_array *array = perl_array_value(ary);
 
   return array->fill;
 }
@@ -115,7 +115,7 @@ perl_array_length(perl_state *state, perl_array ary)
 void
 perl_array_dump(perl_array ary)
 {
-  struct perl_array *array = perl_to_array(ary);
+  struct perl_array *array = perl_array_value(ary);
   perl_scalar scalar;
   int i;
 

@@ -8,7 +8,7 @@
 typedef int (*perl_cfunc)(perl_state *state);
 
 struct perl_code {
-  perl_object base;
+  perl_object_header
   perl_instruction *code;
   int size;
   perl_array constants;

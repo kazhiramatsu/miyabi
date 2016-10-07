@@ -7,7 +7,7 @@ perl_hash_new(perl_state *state)
   int i;
 
   table = malloc(sizeof(struct perl_hash));
-  table->base.type = PERL_TYPE_HASH;
+  table->tag = PERL_TAG_HASH;
   table->keys = 0;
   table->fill = 0;
   table->max = 256;
@@ -18,14 +18,14 @@ perl_hash_new(perl_state *state)
   for (i = 0; i < table->max; i++) {
     table->array[i] = NULL;
   }
-  return perl_hash_init(table);
+  return perl_hash_make(table);
 }
 
 int
 perl_hash_code(perl_scalar scalar)
 {
   int i = 0;
-	struct perl_str *str = perl_to_str(scalar);
+	struct perl_str *str = perl_str_value(scalar);
   int h = str->hash; 
 
   if (h == 0) {
@@ -46,7 +46,7 @@ perl_hash_store(perl_state *state, perl_hash hash, perl_scalar key, perl_scalar 
 {
   int h, index, found = 0;
   perl_hash_entry *iter, *prev, *entry;
-	struct perl_hash *table = perl_to_hash(hash);
+	struct perl_hash *table = perl_hash_value(hash);
 
   h = perl_hash_code(key);
   index = h & table->max-1;
@@ -59,7 +59,7 @@ perl_hash_store(perl_state *state, perl_hash hash, perl_scalar key, perl_scalar 
   }
   entry = table->array[index];
   for (iter = entry; iter; prev = iter, iter = iter->next) {
-    if (strcmp(perl_to_str(key)->str, perl_to_str(iter->key)->str) == 0) {
+    if (strcmp(perl_str_value(key)->str, perl_str_value(iter->key)->str) == 0) {
       iter->value = value;
       return &iter->value;
     }
@@ -77,7 +77,7 @@ perl_hash_fetch(perl_state *state, perl_hash hash, perl_scalar key, perl_scalar 
 {
   int h, index, found = 0;
   perl_hash_entry *iter, *prev, *entry;
-	struct perl_hash *table = perl_to_hash(hash);
+	struct perl_hash *table = perl_hash_value(hash);
 
   h = perl_hash_code(key);
   index = h & table->max-1;
@@ -93,7 +93,7 @@ perl_hash_fetch(perl_state *state, perl_hash hash, perl_scalar key, perl_scalar 
   }
   entry = table->array[index];
   for (iter = entry; iter; prev = iter, iter = iter->next) {
-    if (strcmp(perl_to_str(key)->str, perl_to_str(iter->key)->str) == 0) {
+    if (strcmp(perl_str_value(key)->str, perl_str_value(iter->key)->str) == 0) {
       return &iter->value;
     }
   }
@@ -111,7 +111,7 @@ perl_hash_fetch(perl_state *state, perl_hash hash, perl_scalar key, perl_scalar 
 void
 perl_hash_iter_init(perl_hash hash)
 {
-	struct perl_hash *table = perl_to_hash(hash);
+	struct perl_hash *table = perl_hash_value(hash);
   table->iter_idx = -1;
   table->iter = NULL;
 }
@@ -119,7 +119,7 @@ perl_hash_iter_init(perl_hash hash)
 perl_hash_entry *
 perl_hash_iter_next(perl_hash hash)
 {
-	struct perl_hash *table = perl_to_hash(hash);
+	struct perl_hash *table = perl_hash_value(hash);
   perl_hash_entry *entry;
 
   entry = table->iter;
@@ -154,7 +154,7 @@ void
 perl_hash_rehash(perl_state *state, perl_hash hash)
 {
   perl_hash_entry *entry, *iter, *prev;
-	struct perl_hash *table = perl_to_hash(hash);
+	struct perl_hash *table = perl_hash_value(hash);
   size_t new_max = table->max * 2;
   perl_hash_entry **new_array = NULL;
 
@@ -179,7 +179,7 @@ perl_hash_rehash(perl_state *state, perl_hash hash)
 perl_scalar *
 perl_store_entry(perl_hash_entry **array, int new_max, perl_hash_entry *new)
 {
-  size_t index = perl_to_str(new->key)->hash & new_max-1;
+  size_t index = perl_str_value(new->key)->hash & new_max-1;
   perl_hash_entry *iter, *entry, *prev;
 
   if (array[index] == NULL) {
@@ -196,7 +196,7 @@ perl_store_entry(perl_hash_entry **array, int new_max, perl_hash_entry *new)
 void
 perl_hash_dump(perl_hash hash)
 {
-	struct perl_hash *table = perl_to_hash(hash);
+	struct perl_hash *table = perl_hash_value(hash);
   perl_hash_entry *entry, *iter;
   int i;
 

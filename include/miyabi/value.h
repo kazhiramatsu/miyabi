@@ -5,7 +5,6 @@ typedef uint64_t perl_value;
 
 #define PERL_TAG_NAN    UINT64_C(0xFFF0000000000000)
 #define PERL_TAG_INT    UINT64_C(0x0001000000000000)
-#define PERL_VALUE_MASK UINT64_C(0x0000FFFFFFFFFFFF)
 #define PERL_TAG_STR    UINT64_C(0x0002000000000000)
 #define PERL_TAG_ARRAY  UINT64_C(0x0003000000000000)
 #define PERL_TAG_HASH   UINT64_C(0x0004000000000000)
@@ -13,9 +12,10 @@ typedef uint64_t perl_value;
 #define PERL_TAG_STASH  UINT64_C(0x0006000000000000)
 #define PERL_TAG_GLOB   UINT64_C(0x0007000000000000)
 #define PERL_TAG_UNDEF  UINT64_C(0x000E000000000000)
-#define PERL_TYPE_MASK  UINT64_C(0x000F000000000000)
+#define PERL_PTR_MASK   UINT64_C(0x0000FFFFFFFFFFFF)
+#define PERL_TAG_MASK   UINT64_C(0x000F000000000000)
 
-#define perl_type(data) (((uint64_t)(data) & PERL_TAG_NAN) == PERL_TAG_NAN) * (((uint64_t)data & PERL_TYPE_MASK) >> 48)
+#define perl_type(data) (((uint64_t)(data) & PERL_TAG_NAN) == PERL_TAG_NAN) * (((uint64_t)data & PERL_TAG_MASK) >> 48)
 
 #define perl_check_type(o, T) do {					\
 		if (perl_type(o) != T) {						\
@@ -24,19 +24,16 @@ typedef uint64_t perl_value;
 		}										\
   } while (0)
 
+#define perl_ptr(v) ((void *)((v) & PERL_PTR_MASK))
+#define perl_immediate_p(v) (perl_type(v) < PERL_TAG_STR)
+#define perl_object_value(v) ((struct perl_object *)(perl_ptr(v)))
+
+#define perl_object_header \
+  uint64_t flags;          \
+  perl_tag_type tag;
+
 enum perl_zone {
   PERL_ZONE_YOUNG,
-};
-
-enum perl_type {
-  PERL_TYPE_NUM,
-  PERL_TYPE_INT,
-  PERL_TYPE_STR,
-  PERL_TYPE_ARRAY,
-  PERL_TYPE_HASH,
-  PERL_TYPE_CODE,
-  PERL_TYPE_GLOB,
-  PERL_TYPE_UNDEF,
 };
 
 typedef uint64_t perl_tag_type;
@@ -52,10 +49,7 @@ enum perl_gc_tag {
 };
 
 typedef struct perl_object {
-  enum perl_type type;
-  size_t size;
-  enum perl_gc_tag tag;
-  struct perl_object *next;
+  perl_object_header
 } perl_object;
 
 typedef struct perl_node perl_node;

@@ -5,7 +5,7 @@
 #include "miyabi/value.h"
 
 struct perl_array {
-  perl_object base;
+  perl_object_header
   ssize_t fill;
   ssize_t max;
   int head;

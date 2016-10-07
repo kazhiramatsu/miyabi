@@ -4,7 +4,7 @@
 #include "miyabi/value.h"
 #include "miyabi/gc.h"
 
-typedef struct perl_state {
+struct perl_state {
   perl_scalar *top;
   perl_scalar *base;
   perl_scalar *stack;
@@ -17,13 +17,11 @@ typedef struct perl_state {
   char **argv;
   uint32_t options;       /* run verbose mode */
   char *filename;         /* program filename */
-  struct perl_vm_heap *heaps;
   struct perl_code *toplevel; /* toplevel bytecode */
   perl_hash defstash;
  	perl_hash curstash;
 	perl_scalar curstashname;
-  perl_heap *heap;
-  perl_object *gc_roots;
-} perl_state;
+  perl_gc *gc;
+};
 
 #endif

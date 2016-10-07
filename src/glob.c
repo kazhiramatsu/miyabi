@@ -5,14 +5,14 @@ perl_glob_new(perl_state *state)
 {
   struct perl_glob *glob = malloc(sizeof(struct perl_glob));
 
-  glob->base.type = PERL_TYPE_GLOB;
+  glob->tag = PERL_TAG_GLOB;
   glob->scalar = perl_undef_new();
   glob->code = perl_undef_new();
   glob->hash = perl_undef_new();
   glob->array = perl_undef_new();
   glob->eglob = perl_undef_new();
 
-  return perl_glob_init(glob);
+  return perl_glob_make(glob);
 }
 
 perl_glob
@@ -23,7 +23,7 @@ perl_glob_code_add(perl_code code)
   if (!g->code) {
     g->code = code;
   }
-	return perl_glob_init(g);
+	return perl_glob_make(g);
 }
 
 perl_glob
@@ -34,7 +34,7 @@ perl_glob_hash_add(perl_hash hash)
   if (!g->hash) {
     g->hash = hash;
   }
-	return perl_glob_init(g);
+	return perl_glob_make(g);
 }
 
 perl_glob

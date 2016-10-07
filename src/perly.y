@@ -1646,7 +1646,7 @@ perl_add_my_name(perl_parser *p, perl_scalar name)
   for (v = b->variable; v; prev = v, v = v->next) {
     if (perl_str_eq(NULL, name, v->name)) {
       perl_warner(p->state, "\"%s\" variable %s masks earlier declaration in same scope\n",
-                  "my", perl_to_str(v->name)->str);
+                  "my", perl_str_value(v->name)->str);
       return v;
     }
     idx++;
@@ -2195,7 +2195,7 @@ perl_canonicalize_name(perl_parser *p, perl_scalar str)
   char *pos = NULL;
   char *start;
 
-  start = perl_to_str(str)->str;
+  start = perl_str_value(str)->str;
 
   /**
    * A::B::C  => (A::, A::B::, A::B::C::)
@@ -2211,7 +2211,7 @@ perl_canonicalize_name(perl_parser *p, perl_scalar str)
   }
 
   if (pos == NULL) {
-    temp = perl_str_new(p->state, start, perl_to_str(str)->fill-total);
+    temp = perl_str_new(p->state, start, perl_str_value(str)->fill-total);
     perl_array_push(p->state, components, temp);
   }
   return components;
@@ -2229,7 +2229,7 @@ find_top_pkg(perl_parser *p, perl_scalar name)
     //     $lex = $ALL.{$oid};
     // }
 
-  if (perl_to_str(name)->str[perl_to_str(name)->fill-1]  != ':' && perl_to_str(name)->str[perl_to_str(name)->fill-2] != ':') {
+  if (perl_str_value(name)->str[perl_str_value(name)->fill-1]  != ':' && perl_str_value(name)->str[perl_str_value(name)->fill-2] != ':') {
     perl_scalar new = perl_str_copy(p->state, name);
     perl_scalar ret = perl_str_cat_cstr(p->state, new, "::", 2);
   }
@@ -2508,14 +2508,14 @@ out:
           if (n > 4294967295.0)
             //      yywarn(p, "%s number > %s non-portable", Base, max);
             perl_warner(p->state, "%s number > %s non-portable", Base, max);
-          sv = perl_num_init(n);
+          sv = perl_num_make(n);
         }
         else {
 #if UVSIZE > 4
           if (u > 0xffffffff)
             //yywarn(p, "%s number > %s non-portable", Base, max);
 #endif
-            sv = perl_int_init(u);
+            sv = perl_int_make(u);
         }
       }
       break;
@@ -2560,9 +2560,9 @@ decimal:
       value = atof(p->tokenbuf);
       tryi32 = (int32_t)(value);
       if (!floatit && (double)tryi32 == value) {
-        sv = perl_int_init(tryi32);
+        sv = perl_int_make(tryi32);
       } else {
-        sv = perl_num_init(value);
+        sv = perl_num_make(value);
       }
   }
   perl_node *node = node_const_new(p, sv);

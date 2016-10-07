@@ -24,7 +24,7 @@ perl_precall(perl_state *state, perl_code *code)
 {
   perl_callinfo *ci;
   perl_scalar *base;
-  struct perl_code *c = perl_to_code(*code);
+  struct perl_code *c = perl_code_value(*code);
   size_t n;
 
   n = (size_t)(state->top - code) - 1;  /* number of real arguments */
@@ -36,7 +36,7 @@ perl_precall(perl_state *state, perl_code *code)
   ci->base = base;
   ci->top = base;
   //ci->top = base + code->maxregs;
-  ci->u.p.savedpc = perl_to_code(*code)->code;  /* starting point */
+  ci->u.p.savedpc = perl_code_value(*code)->code;  /* starting point */
   state->top = ci->top;
   if (c->cfunc) {
     n = (*c->cfunc)(state);

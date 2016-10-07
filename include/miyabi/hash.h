@@ -11,7 +11,7 @@ typedef struct perl_hash_entry {
 } perl_hash_entry;
 
 struct perl_hash {
-  perl_object base;
+  perl_object_header
   int keys;
   int fill;
   int max;

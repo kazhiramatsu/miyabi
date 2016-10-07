@@ -1,66 +1,53 @@
 
 #include "miyabi/perl.h"
 
-void
-gc_copying(perl_state *state)
+perl_gc *
+perl_gc_new(perl_state *state, size_t heap_size)
 {
-  perl_heap *heap = state->heap;
-  perl_object *gc_roots = state->gc_roots;
+	perl_gc *gc;
 
-  heap->free = heap->to_start;
-  for (i = 0; i < state->gc_roots->size; i++) {
-     state->gc_roots[i] = copy(state->gc_roots[i]);
-     swap(heap);
-  }
+	gc = malloc(sizeof(perl_gc));
+  gc->phase = PERL_GC_ROOT_SCAN;
+  gc->mark_stack = perl_array_new(state); 
+	return gc;
 }
 
 void
-swap(perl_heap *heap)
-{
-  uintptr_t to = heap->to_start;
-  uintptr_t from = heap->from_start;
-  heap->from_start = to;
-  heap->to_start = from;
-}
-
-perl_object *
-copy(perl_heap *heap, perl_object *obj)
-{
-  if (obj->tag != PERL_GC_COPIED) {
-    copy_data(heap->free, obj, obj->size);
-    obj->tag = PERL_GC_COPIED;
-    obj->forwarding = heap->free;
-    heap->free += obj->size; 
-    copy_children(heap, obj->forwarding);
-  }
-  return obj->forwarding;
-}
-
-void
-copy_children(perl_heap *heap, perl_object *obj)
-{
-  switch (obj->type) {
-  case PERL_TYPE_STR:
-    break;
-  case PERL_TYPE_ARRAY:
-    copy_array(heap, (struct perl_array *)obj);
-    break;
-  }
-}
-
-copy_array(perl_heap *heap, struct perl_array *ary)
+scan_stack(perl_state *state)
 {
   int i;
+  size_t size = state->stack_end - state->stack;
+  perl_scalar *stack = state->stack;
 
-  for (i = 0; i < ary->fill; i++) {
-    switch (perl_type(ary->array[i])) {
-      case PERL_TYPE_NUM:
-      case PERL_TYPE_INT:
-      case PERL_TYPE_UNDEF:
-        break;
-      case PERL_TYPE_ARRAY:
-        ary->[i] = copy((perl_object *)perl_to_str(ary->array[i]));
-        break;  
+  for (i = 0; i < size; i++) {
+    if (perl_immediate_p(stack[i])) {
+      continue;
     }
+    struct perl_object *obj = perl_object_value(stack[i]);
+    if (obj->flags & PERL_GC_MARK) {
+      obj->flags |= PERL_GC_MARK;
+    } 
+    perl_array_push(state, state->gc->mark_stack, stack[i]);
   }
 }
+
+void
+root_scan_phase(perl_state *state)
+{
+  scan_stack(state);
+  state->gc->phase = PERL_GC_MARK;
+}
+
+void
+perl_incremental_gc(perl_state *state)
+{
+  switch (state->gc->phase) {
+  case PERL_GC_ROOT_SCAN:
+    root_scan_phase(state);
+    break;
+  case PERL_GC_MARK:
+    root_scan_phase(state);
+    break;
+  }
+}
+

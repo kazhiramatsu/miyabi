@@ -16,6 +16,7 @@ perl_new(void)
   state->filename = NULL;
   state->ci = NULL;
   state->ci_end = NULL;
+  state->gc = perl_gc_new(state, 1024*100);
 
   return state;
 }
